@@ -1,0 +1,749 @@
+# -*- coding: utf-8 -*-
+"""
+app.py
+-------------------------------------------------
+Interface gráfica de usuário (GUI) para a aplicação Gestor do Bolsão.
+Utiliza tkinter e a biblioteca ttkbootstrap para um visual moderno.
+Este arquivo lida com a apresentação e a interação com o usuário,
+enquanto o backend.py cuida de toda a lógica de negócio.
+"""
+# --- Importações de Módulos ---
+import tkinter as tk
+from tkinter import ttk, messagebox, filedialog
+import ttkbootstrap as bs
+from ttkbootstrap.constants import *
+from ttkbootstrap.scrolled import ScrolledFrame
+import pandas as pd
+from pathlib import Path
+import json # Módulo para lidar com o arquivo de salvamento offline (JSON)
+import os # ADICIONADO REQ 5: Necessário para a função resource_path
+import ctypes # <-- ADICIONE ESTA IMPORTAÇÃO
+
+# Importa todas as funções de lógica do nosso outro arquivo
+import backend as be
+
+class App(bs.Window):
+    def __init__(self, title, size):
+        super().__init__(themename="litera")
+        
+        # --- CÓDIGO CORRETO E DEFINITIVO PARA O ÍCONE ---
+        
+        # 1. Define o App User Model ID para a BARRA DE TAREFAS do Windows
+        myappid = 'MatrizEducacao.GestorBolsao.Desktop.2-1' # Deve ser único para o aplicativo
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+
+        # 2. Define o ícone da JANELA usando iconbitmap (o método correto para .ico)
+        try:
+            icon_path = be.resource_path(os.path.join("images", "matriz.ico"))
+            self.iconbitmap(icon_path)
+        except tk.TclError:
+            print("Aviso: Ícone 'images/matriz.ico' não encontrado ou inválido.")
+
+        APP_VERSION = "2.1"
+        self.title(f"{title} v{APP_VERSION}")
+        
+        self.geometry(f'{size[0]}x{size[1]}')
+        self.minsize(size[0], size[1])
+
+        # --- INÍCIO DA NOVA ABORDAGEM PARA O ÍCONE ---
+        # Em vez de self.iconbitmap, usamos self.iconphoto
+        # que funciona com um objeto PhotoImage e é, às vezes, mais compatível.
+        try:
+            icon_path = be.resource_path(os.path.join("images", "matriz.ico"))
+            # Carregamos a imagem em um objeto Tkinter primeiro
+            logo_img = tk.PhotoImage(file=icon_path)
+            # O 'True' define este ícone como o padrão para esta e todas as futuras janelas
+            self.iconphoto(True, logo_img)
+        except tk.TclError:
+            print("Aviso: Ícone 'images/matriz.ico' não encontrado ou inválido. Verifique se o formato está correto.")
+        # --- FIM DA NOVA ABORDAGEM ---
+
+        # --- Variáveis de Estado da Aplicação ---
+        self.snapshot_data = None
+        self.hubspot_df = None
+
+        # Frame de Carregamento (continua igual)
+        self.loading_frame = ttk.Frame(self, padding=20)
+        self.loading_frame.pack(expand=True)
+        self.loading_label_var = tk.StringVar(value="Conectando e carregando dados...")
+        ttk.Label(self.loading_frame, textvariable=self.loading_label_var, font=("-size 12")).pack(pady=10)
+        self.progress_bar = ttk.Progressbar(self.loading_frame, mode='indeterminate')
+        self.progress_bar.pack(pady=10, fill='x', padx=20)
+        self.progress_bar.start()
+
+        # Inicia o processo de carregamento de dados.
+        self.load_initial_data()
+
+    def load_initial_data(self):
+        """
+        ATUALIZAÇÃO (Req 1): Carrega todos os dados necessários da planilha ao iniciar.
+        Se falhar, tenta novamente a cada 5 segundos.
+        """
+        try:
+            self.loading_label_var.set("Carregando dados do Hubspot...")
+            self.hubspot_df = be.get_hubspot_data_for_activation()
+            
+            self.loading_label_var.set("Carregando resultados do bolsão...")
+            self.snapshot_data = be.load_resultados_snapshot()
+            
+            self.progress_bar.stop()
+            self.loading_frame.destroy()
+            self.setup_main_ui()
+
+        except Exception as e:
+            self.loading_label_var.set(f"Falha na conexão. Tentando novamente em 5s...\nErro: {e}")
+            self.after(5000, self.load_initial_data)
+
+    def setup_main_ui(self):
+        """
+        ATUALIZAÇÃO (Req 1): Constrói a interface principal do programa APÓS os dados serem carregados.
+        """
+        self.notebook = ttk.Notebook(self)
+        self.notebook.pack(expand=True, fill='both', padx=10, pady=10)
+        
+        self.status_var = tk.StringVar()
+        self.status_bar = ttk.Label(self, textvariable=self.status_var, anchor='w', padding=(5, 2))
+        self.status_bar.pack(side='bottom', fill='x')
+
+        self.create_carta_tab()
+        self.create_negociacao_tab()
+        self.create_formulario_tab()
+        self.create_valores_tab()
+        
+        self.sync_offline_data(silent=True)
+        self.update_status_bar()
+
+    # --- ABA 1: GERAR CARTA ---
+    def create_carta_tab(self):
+        carta_frame = ttk.Frame(self.notebook, padding=10)
+        self.notebook.add(carta_frame, text='Gerar Carta')
+
+        self.load_frame = ttk.LabelFrame(carta_frame, text="Filtrar Candidato", padding=15)
+        self.load_frame.pack(fill='x', padx=10, pady=10)
+        self.load_frame.grid_columnconfigure(1, weight=1)
+        self.c_load_unidade_var = tk.StringVar(value=be.UNIDADES_LIMPAS[0])
+        self.c_load_candidato_var = tk.StringVar()
+        
+        ttk.Label(self.load_frame, text="Filtrar por Unidade:").grid(row=0, column=0, padx=5, pady=5, sticky='w')
+        self.c_unidade_filter_combo = ttk.Combobox(self.load_frame, textvariable=self.c_load_unidade_var, values=be.UNIDADES_LIMPAS, state="readonly")
+        self.c_unidade_filter_combo.grid(row=0, column=1, padx=5, pady=5, sticky='ew')
+        self.c_unidade_filter_combo.bind("<<ComboboxSelected>>", self.filter_hubspot_candidates_by_unit)
+
+        ttk.Label(self.load_frame, text="Selecione o Candidato:").grid(row=1, column=0, padx=5, pady=5, sticky='w')
+        self.c_candidato_combo = ttk.Combobox(self.load_frame, textvariable=self.c_load_candidato_var, state="readonly", height=10)
+        self.c_candidato_combo.grid(row=1, column=1, padx=5, pady=5, sticky='ew')
+        self.c_candidato_combo.bind("<<ComboboxSelected>>", self.populate_from_hubspot)
+        
+        self.filter_hubspot_candidates_by_unit()
+
+        self.form_frame = ttk.LabelFrame(carta_frame, text="Dados do Candidato", padding=15)
+        self.form_frame.pack(fill='x', padx=10, pady=10)
+        self.form_frame.grid_columnconfigure(1, weight=1)
+        self.form_frame.grid_columnconfigure(3, weight=1)
+
+        self.c_nome_var = tk.StringVar()
+        self.c_unidade_var = tk.StringVar(value=be.UNIDADES_LIMPAS[0])
+        self.c_turma_var = tk.StringVar(value=list(be.TURMA_DE_INTERESSE_MAP.keys())[0])
+        self.c_ac_mat_var = tk.IntVar(value=0)
+        self.c_ac_port_var = tk.IntVar(value=0)
+        self.c_serie_var = tk.StringVar()
+        self.c_bolsa_resultado_var = tk.StringVar(value="➔ Bolsa obtida: -")
+
+        def update_serie_and_limits(*args):
+            turma = self.c_turma_var.get()
+            serie = be.TURMA_DE_INTERESSE_MAP.get(turma, "")
+            self.c_serie_var.set(serie)
+            max_acertos = 5 if serie == "1º ao 5º Ano" else 12
+            self.c_ac_mat_spinbox.config(to=max_acertos)
+            self.c_ac_port_spinbox.config(to=max_acertos)
+            if self.c_ac_mat_var.get() > max_acertos: self.c_ac_mat_var.set(max_acertos)
+            if self.c_ac_port_var.get() > max_acertos: self.c_ac_port_var.set(max_acertos)
+        
+        self.c_turma_var.trace_add("write", update_serie_and_limits)
+        self.c_ac_mat_var.trace_add("write", self.calcular_bolsa_display)
+        self.c_ac_port_var.trace_add("write", self.calcular_bolsa_display)
+
+        ttk.Label(self.form_frame, text="Nome do Candidato:").grid(row=0, column=0, padx=5, pady=5, sticky='w')
+        ttk.Entry(self.form_frame, textvariable=self.c_nome_var, width=50).grid(row=0, column=1, columnspan=3, padx=5, pady=5, sticky='ew')
+        ttk.Label(self.form_frame, text="Unidade:").grid(row=1, column=0, padx=5, pady=5, sticky='w')
+        ttk.Combobox(self.form_frame, textvariable=self.c_unidade_var, values=be.UNIDADES_LIMPAS, state="readonly").grid(row=1, column=1, padx=5, pady=5, sticky='ew')
+        ttk.Label(self.form_frame, text="Turma de Interesse:").grid(row=1, column=2, padx=5, pady=5, sticky='w')
+        ttk.Combobox(self.form_frame, textvariable=self.c_turma_var, values=list(be.TURMA_DE_INTERESSE_MAP.keys()), state="readonly").grid(row=1, column=3, padx=5, pady=5, sticky='ew')
+        ttk.Label(self.form_frame, text="Acertos - Matemática:").grid(row=2, column=0, padx=5, pady=5, sticky='w')
+        self.c_ac_mat_spinbox = ttk.Spinbox(self.form_frame, from_=0, to=12, textvariable=self.c_ac_mat_var, width=8)
+        self.c_ac_mat_spinbox.grid(row=2, column=1, padx=5, pady=5, sticky='w')
+        ttk.Label(self.form_frame, text="Acertos - Português:").grid(row=2, column=2, padx=5, pady=5, sticky='w')
+        self.c_ac_port_spinbox = ttk.Spinbox(self.form_frame, from_=0, to=12, textvariable=self.c_ac_port_var, width=8)
+        self.c_ac_port_spinbox.grid(row=2, column=3, padx=5, pady=5, sticky='w')
+        ttk.Label(self.form_frame, text="Série/Modalidade:").grid(row=3, column=0, padx=5, pady=5, sticky='w')
+        ttk.Entry(self.form_frame, textvariable=self.c_serie_var, state="readonly").grid(row=3, column=1, columnspan=3, padx=5, pady=5, sticky='ew')
+        
+        form_actions_frame = ttk.Frame(self.form_frame)
+        form_actions_frame.grid(row=4, column=0, columnspan=4, pady=10)
+        ttk.Button(form_actions_frame, text="Limpar Campos", command=self.clear_carta_form).pack(side='left', padx=5)
+        ttk.Label(form_actions_frame, textvariable=self.c_bolsa_resultado_var, font=("Helvetica", 12, "bold")).pack(side='left', padx=20)
+
+        action_frame = ttk.Frame(carta_frame)
+        action_frame.pack(fill='x', padx=10, pady=10)
+        ttk.Button(action_frame, text="Gerar e Salvar Carta PDF", command=self.gerar_carta, style='success.TButton').pack(side='left', padx=10, expand=True)
+        ttk.Button(action_frame, text="Sincronizar Dados Offline", command=self.sync_offline_data, style='info.TButton').pack(side='left', padx=10, expand=True)
+        
+        update_serie_and_limits()
+
+    def filter_hubspot_candidates_by_unit(self, event=None):
+        """Filtra os candidatos já em memória com base na unidade selecionada."""
+        if self.hubspot_df is None:
+            return
+
+        unidade_sel = self.c_load_unidade_var.get()
+        unidade_completa = be.UNIDADES_MAP.get(unidade_sel)
+        df_filtrado = self.hubspot_df[self.hubspot_df['Unidade'] == unidade_completa]
+        
+        if df_filtrado.empty:
+            self.c_candidato_combo['values'] = []
+        else:
+            nomes_candidatos = sorted(df_filtrado['Nome do Candidato'].tolist())
+            self.c_candidato_combo['values'] = nomes_candidatos
+        
+        self.c_load_candidato_var.set("")
+
+    def populate_from_hubspot(self, event=None):
+        """Preenche os campos do formulário com os dados do candidato selecionado."""
+        nome_selecionado = self.c_load_candidato_var.get()
+        if not nome_selecionado or self.hubspot_df is None:
+            return
+
+        candidato_data = self.hubspot_df[self.hubspot_df['Nome do Candidato'] == nome_selecionado].iloc[0]
+        
+        self.c_nome_var.set(candidato_data.get('Nome do Candidato', ''))
+        unidade_completa = candidato_data.get('Unidade', '')
+        unidade_limpa = next((key for key, value in be.UNIDADES_MAP.items() if value == unidade_completa), be.UNIDADES_LIMPAS[0])
+        self.c_unidade_var.set(unidade_limpa)
+
+        serie_modalidade = candidato_data.get('Turma de Interesse - Geral', '')
+        turma_interesse = next(
+            (key for key, value in be.TURMA_DE_INTERESSE_MAP.items() if value == serie_modalidade), 
+            list(be.TURMA_DE_INTERESSE_MAP.keys())[0]
+        )
+        self.c_turma_var.set(turma_interesse)
+
+    def clear_carta_form(self):
+        """Limpa todos os campos do formulário da aba Gerar Carta."""
+        self.c_nome_var.set("")
+        self.c_unidade_var.set(be.UNIDADES_LIMPAS[0])
+        self.c_turma_var.set(list(be.TURMA_DE_INTERESSE_MAP.keys())[0])
+        self.c_ac_mat_var.set(0)
+        self.c_ac_port_var.set(0)
+        self.c_load_candidato_var.set("")
+        self.calcular_bolsa_display()
+
+    def calcular_bolsa_display(self, *args):
+        """Calcula e exibe o percentual da bolsa na tela."""
+        try:
+            total = self.c_ac_mat_var.get() + self.c_ac_port_var.get()
+            serie = self.c_serie_var.get()
+            pct = be.calcula_bolsa(total, serie)
+            self.c_bolsa_resultado_var.set(f"➔ Bolsa obtida: {pct*100:.0f}% ({total} acertos)")
+        except Exception as e:
+            messagebox.showerror("Erro de Cálculo", str(e))
+
+    def gerar_carta(self):
+        """Função principal da aba: coleta dados, chama o backend e salva o PDF."""
+        aluno = self.c_nome_var.get()
+        if not aluno:
+            messagebox.showerror("Erro de Validação", "O nome do candidato é obrigatório.")
+            return
+        try:
+            unidade_limpa = self.c_unidade_var.get()
+            turma = self.c_turma_var.get()
+            ac_mat = self.c_ac_mat_var.get()
+            ac_port = self.c_ac_port_var.get()
+            serie_modalidade = self.c_serie_var.get()
+            total_acertos = ac_mat + ac_port
+            pct_bolsa = be.calcula_bolsa(total_acertos, serie_modalidade)
+            precos = be.precos_2026(serie_modalidade)
+            val_ano = precos["anuidade"] * (1 - pct_bolsa)
+            val_parcela_mensal = precos["parcela_mensal"] * (1 - pct_bolsa)
+            val_primeira_cota = precos["primeira_cota"] * (1 - pct_bolsa)
+            hoje = be.date.today()
+            ctx = {
+                "ano": hoje.year, "unidade": f"Colégio Matriz – {unidade_limpa}",
+                "aluno": aluno.strip().title(), "bolsa_pct": f"{pct_bolsa * 100:.0f}",
+                "acertos_mat": ac_mat, "acertos_port": ac_port, "turma": turma,
+                "n_parcelas": 12, "data_limite": (hoje + be.timedelta(days=7)).strftime("%d/%m/%Y"),
+                "anuidade_vista": be.format_currency(val_ano * 0.95),
+                "primeira_cota": be.format_currency(val_primeira_cota),
+                "valor_parcela": be.format_currency(val_parcela_mensal),
+                "unidades_html": "".join(f"<span class='unidade-item'>{u}</span>" for u in be.UNIDADES_LIMPAS),
+            }
+            pdf_bytes = be.gera_pdf_html(ctx)
+            file_path = filedialog.asksaveasfilename(
+                defaultextension=".pdf", filetypes=[("PDF files", "*.pdf")],
+                initialfile=f"Carta_Bolsa_{aluno.replace(' ', '_')}.pdf", title="Salvar Carta PDF"
+            )
+            if file_path:
+                with open(file_path, "wb") as f: f.write(pdf_bytes)
+                messagebox.showinfo("Sucesso", f"Carta PDF salva com sucesso em:\n{file_path}")
+                if messagebox.askyesno("Registrar na Planilha?", "Deseja registrar este resultado na planilha online?"):
+                    self.registrar_na_planilha(aluno, unidade_limpa, turma, ac_mat, ac_port, total_acertos, pct_bolsa, serie_modalidade, ctx)
+        except Exception as e:
+            messagebox.showerror("Erro ao Gerar Carta", str(e))
+
+    # --- FUNÇÃO TOTALMENTE REESCRITA PARA CORRIGIR O BUG DE SINCRONIZAÇÃO ---
+    def registrar_na_planilha(self, aluno, unidade_limpa, turma, ac_mat, ac_port, total, pct, serie, ctx):
+        """Envia os dados gerados para a planilha Resultados_Bolsao e atualiza o estado local."""
+        row_data_map = {
+            "Data/Hora": be.datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+            "Nome do Aluno": aluno.strip().title(),
+            "Unidade": be.UNIDADES_MAP[unidade_limpa],
+            "Turma de Interesse": turma,
+            "Acertos Matemática": ac_mat,
+            "Acertos Português": ac_port,
+            "Total de Acertos": total,
+            "% Bolsa": f"{pct*100:.0f}%",
+            "Série / Modalidade": serie,
+            "Valor Anuidade à Vista": ctx["anuidade_vista"],
+            "Valor da 1ª Cota": ctx["primeira_cota"],
+            "Valor da Mensalidade com Bolsa": ctx["valor_parcela"],
+            "REGISTRO_ID": be.new_uuid()
+        }
+        
+        try:
+            bolsao_name = be.get_bolsao_name_for_date()
+            row_data_map["Bolsão"] = bolsao_name
+        except Exception as e:
+            print(f"Aviso: Não foi possível determinar o nome do bolsão. Erro: {e}")
+            row_data_map["Bolsão"] = "Bolsão Avulso"
+
+        try:
+            # Tenta o registro online
+            ws_res = be.get_ws("Resultados_Bolsao")
+            hmap_res = be.header_map("Resultados_Bolsao")
+            header_list = sorted(hmap_res, key=hmap_res.get)
+            nova_linha = [row_data_map.get(col_name, "") for col_name in header_list]
+            ws_res.append_row(nova_linha, value_input_option="USER_ENTERED")
+            messagebox.showinfo("Sucesso", "Dados registrados na planilha online!")
+
+            # LÓGICA CORRIGIDA: Se o registro online deu certo, recarregamos TUDO do servidor.
+            try:
+                self.status_var.set("Sincronizando dados atualizados...")
+                self.update() # Força a atualização da UI para mostrar a mensagem
+                self.snapshot_data = be.load_resultados_snapshot()
+                self.status_var.set("Dados sincronizados.")
+            except Exception as sync_error:
+                messagebox.showwarning("Aviso de Sincronização", f"O registro foi salvo, mas a sincronização automática falhou. Pode ser necessário reiniciar para editar.\nErro: {sync_error}")
+
+        except Exception as e:
+            # Se o registro online falhou, salvamos na fila offline
+            messagebox.showwarning(
+                "Falha na Conexão",
+                f"Não foi possível registrar na planilha online.\nErro: {e}\n\nOs dados serão salvos localmente e enviados mais tarde."
+            )
+            self.save_to_offline_queue(row_data_map)
+            # E adicionamos APENAS o registro offline na lista local (não será editável até sincronizar)
+            if self.snapshot_data:
+                self.snapshot_data['rows'].append(row_data_map)
+        
+        # Finalmente, atualizamos os filtros do formulário em ambos os casos (online ou offline)
+        if self.snapshot_data:
+            self.populate_form_filters_initial()
+
+    # --- ABA 2: NEGOCIAÇÃO ---
+    def create_negociacao_tab(self):
+        neg_frame = ttk.Frame(self.notebook, padding=10)
+        self.notebook.add(neg_frame, text='Negociação')
+        self.n_unidade_var = tk.StringVar(value=be.UNIDADES_LIMPAS[0])
+        self.n_serie_var = tk.StringVar(value=list(be.TUITION.keys())[0])
+        self.n_valor_minimo_var = tk.StringVar(value="Valor Mínimo: R$ 0,00")
+        self.n_modo_sim_var = tk.StringVar(value="Bolsa (%)")
+        self.n_bolsa_sim_var = tk.IntVar(value=30)
+        self.n_valor_neg_var = tk.DoubleVar(value=1500.0)
+        self.n_resultado_var = tk.StringVar()
+        self.n_bolsa_percent_var = tk.StringVar(value="30%")
+
+        def update_negociacao_calculo(*args):
+            try:
+                self.n_bolsa_percent_var.set(f"{self.n_bolsa_sim_var.get()}%")
+                unidade = self.n_unidade_var.get()
+                serie = self.n_serie_var.get()
+                valor_minimo = be.calcula_valor_minimo(unidade, serie)
+                self.n_valor_minimo_var.set(f"Valor Mínimo Negociável: {be.format_currency(valor_minimo)}")
+                precos = be.precos_2026(serie)
+                valor_integral = precos["parcela_mensal"]
+                resultado_str = ""
+                if self.n_modo_sim_var.get() == "Bolsa (%)":
+                    bolsa_pct = self.n_bolsa_sim_var.get() / 100
+                    valor_final = valor_integral * (1 - bolsa_pct)
+                    resultado_str = f"Valor da Parcela: {be.format_currency(valor_final)}"
+                    if valor_final < valor_minimo: resultado_str += " (Abaixo do mínimo!)"
+                else:
+                    valor_desejado = self.n_valor_neg_var.get()
+                    bolsa_necessaria = (1 - (valor_desejado / valor_integral)) * 100 if valor_integral > 0 else 0
+                    resultado_str = f"Bolsa Necessária: {bolsa_necessaria:.2f}%"
+                    if valor_desejado < valor_minimo: resultado_str += " (Abaixo do mínimo!)"
+                self.n_resultado_var.set(resultado_str)
+            except Exception as e:
+                self.n_resultado_var.set("Erro no cálculo.")
+                messagebox.showerror("Erro de Cálculo", str(e))
+
+        top_frame = ttk.Frame(neg_frame)
+        top_frame.pack(fill='x', padx=10, pady=5)
+        top_frame.grid_columnconfigure(1, weight=1)
+        ttk.Label(top_frame, text="Unidade:").grid(row=0, column=0, padx=5, pady=5, sticky='w')
+        ttk.Combobox(top_frame, textvariable=self.n_unidade_var, values=be.UNIDADES_LIMPAS, state='readonly').grid(row=0, column=1, padx=5, pady=5, sticky='ew')
+        ttk.Label(top_frame, text="Série/Modalidade:").grid(row=1, column=0, padx=5, pady=5, sticky='w')
+        ttk.Combobox(top_frame, textvariable=self.n_serie_var, values=list(be.TUITION.keys()), state='readonly').grid(row=1, column=1, padx=5, pady=5, sticky='ew')
+        ttk.Separator(neg_frame).pack(fill='x', padx=10, pady=10)
+        ttk.Label(neg_frame, textvariable=self.n_valor_minimo_var, font=("-size 12 -weight bold")).pack(pady=5)
+        ttk.Separator(neg_frame).pack(fill='x', padx=10, pady=10)
+        sim_frame = ttk.LabelFrame(neg_frame, text="Simulador", padding=15)
+        sim_frame.pack(fill='x', padx=10, pady=10)
+        
+        slider_frame = ttk.Frame(sim_frame)
+        slider_frame.pack(fill='x', padx=20, pady=5)
+        ttk.Radiobutton(sim_frame, text="Calcular por Bolsa (%)", variable=self.n_modo_sim_var, value="Bolsa (%)").pack(anchor='w')
+        ttk.Scale(slider_frame, from_=0, to=100, variable=self.n_bolsa_sim_var, orient='horizontal', length=350, command=update_negociacao_calculo).pack(side='left', fill='x', expand=True)
+        ttk.Label(slider_frame, textvariable=self.n_bolsa_percent_var, font=("-size 10 -weight bold")).pack(side='left', padx=10)
+
+        ttk.Radiobutton(sim_frame, text="Calcular por Valor da Parcela (R$)", variable=self.n_modo_sim_var, value="Valor da Parcela (R$)").pack(anchor='w', pady=(10,0))
+        valor_input_frame = ttk.Frame(sim_frame)
+        valor_input_frame.pack(fill='x', padx=20, pady=5)
+        ttk.Label(valor_input_frame, text="R$").pack(side='left')
+        ttk.Entry(valor_input_frame, textvariable=self.n_valor_neg_var).pack(side='left', fill='x', expand=True)
+        
+        ttk.Label(neg_frame, textvariable=self.n_resultado_var, font=("-size 14 -weight bold"), style='success.TLabel').pack(pady=20)
+        
+        self.n_unidade_var.trace_add('write', update_negociacao_calculo)
+        self.n_serie_var.trace_add('write', update_negociacao_calculo)
+        self.n_modo_sim_var.trace_add('write', update_negociacao_calculo)
+        ttk.Button(sim_frame, text="Calcular", command=update_negociacao_calculo).pack(pady=10)
+        update_negociacao_calculo()
+
+    # --- ABA 3: FORMULÁRIO BÁSICO ---
+    def create_formulario_tab(self):
+        self.f_unidade_var = tk.StringVar()
+        self.f_bolsao_var = tk.StringVar()
+        self.f_candidato_var = tk.StringVar()
+        self.f_info_var = tk.StringVar()
+        self.f_escola_var = tk.StringVar()
+        self.f_resp_fin_var = tk.StringVar()
+        self.f_tel_var = tk.StringVar()
+        
+        # MODIFICADO REQ 4: Troca de DoubleVar para StringVar
+        self.f_valor_neg_var = tk.StringVar()
+        self.f_expectativa_var = tk.StringVar()
+
+        self.f_matriculou_var = tk.StringVar()
+        self.f_obs_var = None
+        
+        tab_container = ttk.Frame(self.notebook)
+        self.notebook.add(tab_container, text='Formulário Básico')
+        f_scrolled_frame = ScrolledFrame(tab_container, autohide=True)
+        f_scrolled_frame.pack(fill="both", expand=True)
+        
+        filter_frame = ttk.LabelFrame(f_scrolled_frame, text="Filtros", padding=10)
+        filter_frame.pack(fill='x', padx=10, pady=5)
+        filter_frame.grid_columnconfigure(1, weight=1)
+        
+        ttk.Label(filter_frame, text="Unidade:").grid(row=0, column=0, padx=5, pady=5, sticky='w')
+        self.f_unidade_combo = ttk.Combobox(filter_frame, textvariable=self.f_unidade_var, values=["Carregue os dados..."], state='readonly')
+        self.f_unidade_combo.grid(row=0, column=1, padx=5, pady=5, sticky='ew')
+        ttk.Label(filter_frame, text="Bolsão:").grid(row=1, column=0, padx=5, pady=5, sticky='w')
+        self.f_bolsao_combo = ttk.Combobox(filter_frame, textvariable=self.f_bolsao_var, values=["Filtre por unidade..."], state='readonly')
+        self.f_bolsao_combo.grid(row=1, column=1, padx=5, pady=5, sticky='ew')
+        ttk.Label(filter_frame, text="Candidato:").grid(row=2, column=0, padx=5, pady=5, sticky='w')
+        self.f_candidato_combo = ttk.Combobox(filter_frame, textvariable=self.f_candidato_var, values=["Filtre por bolsão..."], state='readonly', height=15)
+        self.f_candidato_combo.grid(row=2, column=1, padx=5, pady=5, sticky='ew')
+        
+        edit_frame = ttk.LabelFrame(f_scrolled_frame, text="Editar Registro", padding=10)
+        edit_frame.pack(fill='both', expand=True, padx=10, pady=10)
+        edit_frame.grid_columnconfigure(1, weight=1)
+
+        ttk.Label(edit_frame, textvariable=self.f_info_var, font=("-size 10 -weight bold")).grid(row=0, column=0, columnspan=2, pady=5, sticky='w')
+        ttk.Label(edit_frame, text="Escola de Origem:").grid(row=1, column=0, padx=5, pady=5, sticky='w')
+        ttk.Entry(edit_frame, textvariable=self.f_escola_var).grid(row=1, column=1, padx=5, pady=5, sticky='ew')
+        ttk.Label(edit_frame, text="Responsável Financeiro:").grid(row=2, column=0, padx=5, pady=5, sticky='w')
+        ttk.Entry(edit_frame, textvariable=self.f_resp_fin_var).grid(row=2, column=1, padx=5, pady=5, sticky='ew')
+        ttk.Label(edit_frame, text="Telefone:").grid(row=3, column=0, padx=5, pady=5, sticky='w')
+        ttk.Entry(edit_frame, textvariable=self.f_tel_var).grid(row=3, column=1, padx=5, pady=5, sticky='ew')
+        ttk.Label(edit_frame, text="Valor Negociado (R$):").grid(row=4, column=0, padx=5, pady=5, sticky='w')
+        ttk.Entry(edit_frame, textvariable=self.f_valor_neg_var).grid(row=4, column=1, padx=5, pady=5, sticky='ew')
+        
+        ttk.Label(edit_frame, text="Expectativa de mensalidade (R$):").grid(row=5, column=0, padx=5, pady=5, sticky='w')
+        ttk.Entry(edit_frame, textvariable=self.f_expectativa_var).grid(row=5, column=1, padx=5, pady=5, sticky='ew')
+
+        ttk.Label(edit_frame, text="Aluno Matriculou?").grid(row=6, column=0, padx=5, pady=5, sticky='w')
+        ttk.Combobox(edit_frame, textvariable=self.f_matriculou_var, values=["", "Sim", "Não"], state='readonly').grid(row=6, column=1, padx=5, pady=5, sticky='ew')
+        ttk.Label(edit_frame, text="Observações:").grid(row=7, column=0, padx=5, pady=5, sticky='nw')
+        self.f_obs_var = tk.Text(edit_frame, height=4, wrap='word')
+        self.f_obs_var.grid(row=7, column=1, padx=5, pady=5, sticky='ew')
+        ttk.Button(edit_frame, text="Salvar Formulário", command=self.save_form_data, style='success.TButton').grid(row=8, column=0, columnspan=2, pady=15)
+        
+        self.f_unidade_combo.bind("<<ComboboxSelected>>", self.update_form_filters)
+        self.f_bolsao_combo.bind("<<ComboboxSelected>>", self.update_form_filters)
+        self.f_candidato_combo.bind("<<ComboboxSelected>>", self.populate_form_fields)
+        
+        self.populate_form_filters_initial()
+
+        # ADICIONADO REQ 4: Adiciona o trace para formatação automática
+        self.f_valor_neg_var.trace_add("write", lambda *args, var=self.f_valor_neg_var: self._validate_and_format_currency(var, *args))
+        self.f_expectativa_var.trace_add("write", lambda *args, var=self.f_expectativa_var: self._validate_and_format_currency(var, *args))
+
+    def populate_form_filters_initial(self):
+        """Popula os filtros do formulário com os dados já carregados."""
+        if self.snapshot_data:
+            unidades_completas = sorted({r.get("Unidade") for r in self.snapshot_data['rows'] if r.get("Unidade")})
+            unidades_limpas = sorted([u.replace("COLEGIO E CURSO MATRIZ EDUCACAO", "").replace("COLEGIO E CURSO MATRIZ EDUCAÇÃO", "").strip() for u in unidades_completas])
+            self.f_unidade_combo['values'] = ["Todas"] + unidades_limpas
+            self.f_unidade_var.set("Todas")
+            self.update_form_filters()
+    
+    def update_form_filters(self, event=None):
+        """Filtra os dados com base nas seleções de unidade e bolsão."""
+        if not self.snapshot_data: return
+        unidade_sel = self.f_unidade_var.get()
+        bolsao_sel = self.f_bolsao_var.get()
+        rows_unit = []
+        if unidade_sel == "Todas": rows_unit = self.snapshot_data['rows']
+        else:
+            unidade_completa = be.UNIDADES_MAP.get(unidade_sel)
+            rows_unit = [r for r in self.snapshot_data['rows'] if r.get("Unidade") == unidade_completa]
+        bolsoes = sorted({r.get("Bolsão") for r in rows_unit if r.get("Bolsão")})
+        self.f_bolsao_combo['values'] = ["Todos"] + bolsoes
+        self.filtered_rows = []
+        if bolsao_sel == "Todos" or not bolsao_sel: self.filtered_rows = rows_unit
+        else: self.filtered_rows = [r for r in rows_unit if r.get("Bolsão") == bolsao_sel]
+        candidatos = [f"{r.get('Nome do Aluno')} ({r.get('REGISTRO_ID')})" for r in self.filtered_rows]
+        self.f_candidato_combo['values'] = sorted(candidatos) # MODIFICADO: Adicionado sorted()
+        self.f_candidato_var.set("")
+        self.clear_form_fields()
+
+    def populate_form_fields(self, event=None):
+        """Preenche o formulário com os dados do candidato selecionado."""
+        selecao = self.f_candidato_var.get()
+        if not selecao:
+            self.clear_form_fields()
+            return
+        reg_id = selecao.split('(')[-1][:-1]
+        self.selected_reg_id = reg_id
+        row = next((r for r in self.filtered_rows if str(r.get("REGISTRO_ID")) == reg_id), None)
+        if not row:
+            self.clear_form_fields()
+            return
+
+        col_expectativa = "Expectativa de mensalidade"
+        col_expectativa_fallback = "Valor Limite (PIA)"
+        expectativa_val = row.get(col_expectativa, row.get(col_expectativa_fallback, 0.0))
+
+        self.f_info_var.set(f"Aluno: {row.get('Nome do Aluno')} | Bolsa: {row.get('% Bolsa')} | Parcela: {row.get('Valor da Mensalidade com Bolsa')}")
+        self.f_escola_var.set(row.get("Escola de Origem", ""))
+        self.f_resp_fin_var.set(row.get("Responsável Financeiro", ""))
+        self.f_tel_var.set(be.format_phone_mask(row.get("Telefone", "")))
+        
+        # MODIFICADO REQ 4: Formata os valores como moeda ao popular
+        valor_neg_float = be.parse_brl_to_float(row.get("Valor Negociado", 0.0))
+        expectativa_float = be.parse_brl_to_float(expectativa_val)
+        self.f_valor_neg_var.set(be.format_currency(valor_neg_float))
+        self.f_expectativa_var.set(be.format_currency(expectativa_float))
+        
+        self.f_matriculou_var.set(row.get("Aluno Matriculou?", ""))
+        self.f_obs_var.delete('1.0', END)
+        self.f_obs_var.insert('1.0', row.get("Observações (Form)", ""))
+
+    def clear_form_fields(self):
+        """Limpa todos os campos do formulário de edição."""
+        self.selected_reg_id = None
+        self.f_info_var.set("")
+        self.f_escola_var.set("")
+        self.f_resp_fin_var.set("")
+        self.f_tel_var.set("")
+        
+        # MODIFICADO REQ 4: Limpa as StringVars
+        self.f_valor_neg_var.set("")
+        self.f_expectativa_var.set("")
+
+        self.f_matriculou_var.set("")
+        if self.f_obs_var: self.f_obs_var.delete('1.0', END)
+
+    def save_form_data(self):
+        """Salva os dados do formulário na planilha."""
+        if not self.selected_reg_id:
+            messagebox.showwarning("Aviso", "Nenhum candidato selecionado para salvar.")
+            return
+
+        # ADICIONADO REQ 2: Validação de campo obrigatório
+        escola_origem = self.f_escola_var.get().strip()
+        if not escola_origem:
+            messagebox.showerror("Campo Obrigatório", "O campo 'Escola de Origem' não pode estar vazio.")
+            return
+
+        try:
+            rownum = self.snapshot_data['id_to_rownum'].get(str(self.selected_reg_id))
+            if not rownum:
+                messagebox.showerror("Erro", "Não foi possível encontrar o número da linha para este registro. Sincronize novamente.")
+                return
+            ws_res = be.get_ws("Resultados_Bolsao")
+            hmap = be.header_map("Resultados_Bolsao")
+            
+            # MODIFICADO REQ 4: Faz o parse dos valores de moeda antes de salvar
+            valor_neg_float = be.parse_brl_to_float(self.f_valor_neg_var.get())
+            expectativa_float = be.parse_brl_to_float(self.f_expectativa_var.get())
+
+            updates_dict = {
+                "Escola de Origem": self.f_escola_var.get(),
+                "Responsável Financeiro": self.f_resp_fin_var.get(),
+                "Telefone": self.f_tel_var.get(),
+                "Valor Negociado": be.format_currency(valor_neg_float),
+                "Aluno Matriculou?": self.f_matriculou_var.get(),
+                "Observações (Form)": self.f_obs_var.get('1.0', 'end-1c'),
+            }
+            col_expectativa = "Expectativa de mensalidade"
+            col_expectativa_fallback = "Valor Limite (PIA)"
+            if col_expectativa in hmap:
+                updates_dict[col_expectativa] = be.format_currency(expectativa_float)
+            elif col_expectativa_fallback in hmap:
+                updates_dict[col_expectativa_fallback] = be.format_currency(expectativa_float)
+
+            updates_to_batch = []
+            for col_name, value in updates_dict.items():
+                col_idx = hmap.get(col_name)
+                if col_idx:
+                    a1_notation = be.gspread.utils.rowcol_to_a1(rownum, col_idx)
+                    updates_to_batch.append({"range": a1_notation, "values": [[value]]})
+            if updates_to_batch:
+                be.batch_update_cells(ws_res, updates_to_batch)
+                messagebox.showinfo("Sucesso", "Dados do formulário salvos com sucesso na planilha!")
+                self.snapshot_data = be.load_resultados_snapshot() # Recarrega para ter os dados mais recentes
+                self.update_form_filters()
+            else:
+                messagebox.showinfo("Informação", "Nenhuma alteração para salvar.")
+        except Exception as e:
+            messagebox.showerror("Erro ao Salvar", str(e))
+
+    # --- ABA 4: VALORES ---
+    def create_valores_tab(self):
+        val_frame = ttk.Frame(self.notebook, padding=10)
+        self.notebook.add(val_frame, text='Valores 2026')
+        ttk.Label(val_frame, text="Tabela de Valores", font=("-size 14 -weight bold")).pack(pady=10)
+        cols = ["Curso", "Série", "Primeira Cota", "12 parcelas de"]
+        tree = ttk.Treeview(val_frame, columns=cols, show='headings', style='info.Treeview')
+        for col in cols:
+            tree.heading(col, text=col)
+            tree.column(col, anchor=CENTER, width=150)
+        linhas = [
+            ("EFI",  "1º Ano", 2050.31, 2050.31), ("EFI",  "2º Ano", 2050.31, 2050.31),
+            ("EFI",  "3º Ano", 2050.31, 2050.31), ("EFI",  "4º Ano", 2050.31, 2050.31),
+            ("EFI",  "5º Ano", 2050.31, 2050.31), ("EFII", "6º Ano", 2411.85, 2411.85),
+            ("EFII", "7º Ano", 2411.85, 2411.85), ("EFII", "8º Ano", 2411.85, 2411.85),
+            ("EFII", "9º Ano - Militar",     2626.62, 2626.62),
+            ("EFII", "9º Ano - Vestibular", 2626.62, 2626.62),
+            ("EM",   "1ª Série - Militar",     2820.77, 2820.77),
+            ("EM",   "1ª Série - Vestibular", 2820.77, 2820.77),
+            ("EM",   "2ª Série - Militar",     2820.77, 2820.77),
+            ("EM",   "2ª Série - Vestibular", 2820.77, 2820.77),
+            ("EM",   "3ª série - Medicina",   2831.69, 2831.69),
+            ("EM",   "3ª Série - Militar",     2831.69, 2831.69),
+            ("EM",   "3ª Série - Vestibular", 2831.69, 2831.69),
+            ("PM",   "AFA/EN/EFOMM", 1138.62, 1138.62), ("PM",   "CN/EPCAr", 681.77,  681.77),
+            ("PM",   "ESA", 549.62,  549.62), ("PM",   "EsPCEx", 1138.62, 1138.62),
+            ("PM",   "IME/ITA", 1138.62, 1138.62), ("PV",   "Medicina", 1138.62, 1138.62),
+            ("PV",   "Pré-Vestibular", 1138.62, 1138.62),
+        ]
+        for linha in linhas:
+            formatted_linha = (linha[0], linha[1], be.format_currency(linha[2]), be.format_currency(linha[3]))
+            tree.insert("", END, values=formatted_linha)
+        tree.pack(expand=True, fill='both', padx=10, pady=10)
+    
+    # ADICIONADO REQ 4: Nova função para formatar a entrada de moeda
+    def _validate_and_format_currency(self, var: tk.StringVar, *args):
+        # Flag para evitar recursão infinita, pois a função modifica a variável que a aciona
+        if hasattr(self, '_formatting_in_progress') and self._formatting_in_progress:
+            return
+        
+        self._formatting_in_progress = True
+        
+        try:
+            current_value = var.get()
+            # Limpa o valor para obter apenas os dígitos, aceitando vírgulas e pontos
+            digits = "".join(filter(str.isdigit, str(current_value)))
+            
+            if not digits:
+                var.set("")
+            else:
+                # Converte para float (ex: "12345" se torna 123.45)
+                float_value = float(digits) / 100
+                # Formata usando a função do backend
+                formatted_value = be.format_currency(float_value)
+                var.set(formatted_value)
+        except (ValueError, tk.TclError):
+            # Ignora erros que podem ocorrer durante a digitação
+            pass
+        finally:
+            self._formatting_in_progress = False
+
+    # --- FUNÇÕES PARA A FILA OFFLINE ---
+    def load_offline_queue(self):
+        """Carrega a fila de registros offline do arquivo JSON."""
+        try:
+            with open("offline_queue.json", "r") as f:
+                return json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return []
+
+    def save_to_offline_queue(self, data):
+        """Salva um novo registro na fila offline."""
+        queue = self.load_offline_queue()
+        queue.append(data)
+        with open("offline_queue.json", "w") as f:
+            json.dump(queue, f, indent=4)
+        self.update_status_bar()
+
+    def update_status_bar(self):
+        """Atualiza o texto da barra de status com o número de itens na fila."""
+        queue = self.load_offline_queue()
+        count = len(queue)
+        if count > 0:
+            self.status_var.set(f"{count} registro(s) na fila para sincronizar.")
+        else:
+            self.status_var.set("Todos os dados estão sincronizados.")
+
+    def sync_offline_data(self, silent=False):
+        """Tenta enviar todos os registros da fila offline para a planilha online."""
+        queue = self.load_offline_queue()
+        if not queue:
+            if not silent:
+                messagebox.showinfo("Sincronização", "Não há dados offline para sincronizar.")
+            return
+
+        if not silent:
+            if not messagebox.askyesno("Sincronização", f"Deseja enviar {len(queue)} registro(s) pendente(s) agora?"):
+                return
+
+        try:
+            ws_res = be.get_ws("Resultados_Bolsao")
+            hmap_res = be.header_map("Resultados_Bolsao")
+            header_list = sorted(hmap_res, key=hmap_res.get)
+            
+            linhas_para_enviar = []
+            for record in queue:
+                nova_linha = [record.get(col_name, "") for col_name in header_list]
+                linhas_para_enviar.append(nova_linha)
+
+            if linhas_para_enviar:
+                ws_res.append_rows(linhas_para_enviar, value_input_option="USER_ENTERED")
+                # Limpa a fila se o envio em lote foi bem-sucedido
+                with open("offline_queue.json", "w") as f:
+                    json.dump([], f)
+                
+                if not silent:
+                    messagebox.showinfo("Sincronização Concluída", f"{len(linhas_para_enviar)} registro(s) enviados com sucesso.")
+            
+            self.update_status_bar()
+
+        except Exception as e:
+            if not silent:
+                messagebox.showerror("Erro de Sincronização", f"Não foi possível conectar à planilha. Tente novamente mais tarde.\nErro: {e}")
+
+if __name__ == '__main__':
+    app = App(title="Gestor do Bolsão", size=(800, 650))
+    app.mainloop()

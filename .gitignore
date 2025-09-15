@@ -1,0 +1,18 @@
+# Ambientes Virtuais
+venv/
+.venv/
+
+# Pastas de Compilação do PyInstaller
+build/
+dist/
+*.spec
+
+# Arquivos Temporários do Python
+__pycache__/
+*.pyc
+
+# Arquivos de uso único e logs
+encode_creds.py
+credencial_codificada.txt
+update_error_log.txt
+offline_queue.json

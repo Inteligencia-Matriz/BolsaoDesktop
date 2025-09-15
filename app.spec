@@ -13,6 +13,7 @@ datas_list = [
     (os.path.join(spec_dir, 'carta.html'), '.'),
     (os.path.join(spec_dir, 'style.css'), '.'),
     (os.path.join(spec_dir, 'images'), 'images')
+    (os.path.join(spec_dir, 'dist', 'updater.exe'), '.')
 ]
 
 a = Analysis(

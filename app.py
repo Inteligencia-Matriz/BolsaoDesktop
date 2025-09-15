@@ -18,6 +18,9 @@ from pathlib import Path
 import json # Módulo para lidar com o arquivo de salvamento offline (JSON)
 import os # ADICIONADO REQ 5: Necessário para a função resource_path
 import ctypes # <-- ADICIONE ESTA IMPORTAÇÃO
+import requests
+from packaging.version import parse as parse_version
+import subprocess
 
 # Importa todas as funções de lógica do nosso outro arquivo
 import backend as be
@@ -25,14 +28,16 @@ import backend as be
 class App(bs.Window):
     def __init__(self, title, size):
         super().__init__(themename="litera")
-        
-        # --- CÓDIGO CORRETO E DEFINITIVO PARA O ÍCONE ---
-        
-        # 1. Define o App User Model ID para a BARRA DE TAREFAS do Windows
-        myappid = 'MatrizEducacao.GestorBolsao.Desktop.2-1' # Deve ser único para o aplicativo
+
+        # --- LÓGICA DE ATUALIZAÇÃO ---
+        # Antes de fazer qualquer outra coisa, verifica se há uma nova versão
+        if self.check_for_updates():
+            return # Se uma atualização for iniciada, interrompe a inicialização do app
+        # ----------------------------
+
+        myappid = 'MatrizEducacao.GestorBolsao.Desktop.2-1'
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
-        # 2. Define o ícone da JANELA usando iconbitmap (o método correto para .ico)
         try:
             icon_path = be.resource_path(os.path.join("images", "matriz.ico"))
             self.iconbitmap(icon_path)
@@ -45,24 +50,9 @@ class App(bs.Window):
         self.geometry(f'{size[0]}x{size[1]}')
         self.minsize(size[0], size[1])
 
-        # --- INÍCIO DA NOVA ABORDAGEM PARA O ÍCONE ---
-        # Em vez de self.iconbitmap, usamos self.iconphoto
-        # que funciona com um objeto PhotoImage e é, às vezes, mais compatível.
-        try:
-            icon_path = be.resource_path(os.path.join("images", "matriz.ico"))
-            # Carregamos a imagem em um objeto Tkinter primeiro
-            logo_img = tk.PhotoImage(file=icon_path)
-            # O 'True' define este ícone como o padrão para esta e todas as futuras janelas
-            self.iconphoto(True, logo_img)
-        except tk.TclError:
-            print("Aviso: Ícone 'images/matriz.ico' não encontrado ou inválido. Verifique se o formato está correto.")
-        # --- FIM DA NOVA ABORDAGEM ---
-
-        # --- Variáveis de Estado da Aplicação ---
         self.snapshot_data = None
         self.hubspot_df = None
 
-        # Frame de Carregamento (continua igual)
         self.loading_frame = ttk.Frame(self, padding=20)
         self.loading_frame.pack(expand=True)
         self.loading_label_var = tk.StringVar(value="Conectando e carregando dados...")
@@ -71,8 +61,45 @@ class App(bs.Window):
         self.progress_bar.pack(pady=10, fill='x', padx=20)
         self.progress_bar.start()
 
-        # Inicia o processo de carregamento de dados.
         self.load_initial_data()
+
+    def check_for_updates(self):
+        """Verifica se há uma nova versão no GitHub e inicia o processo de atualização."""
+        # A versão atual do programa que está rodando
+        CURRENT_VERSION = "2.1" 
+        # URL para o seu arquivo version.json no GitHub (use o link "raw")
+        VERSION_URL = "https://raw.githubusercontent.com/seu-usuario/seu-repositorio/main/version.json"
+
+        try:
+            response = requests.get(VERSION_URL, timeout=5)
+            response.raise_for_status()
+            data = response.json()
+            server_version_str = data["version"]
+            
+            if parse_version(server_version_str) > parse_version(CURRENT_VERSION):
+                if messagebox.askyesno("Atualização Disponível", 
+                                       f"Uma nova versão ({server_version_str}) está disponível.\nDeseja atualizar agora?"):
+                    
+                    # Caminho para o updater.exe (que estará na pasta temporária do PyInstaller)
+                    updater_path = be.resource_path("updater.exe")
+                    
+                    # URL para o ZIP do programa principal
+                    zip_url = data["url"]
+                    
+                    # Caminho para o executável atual
+                    current_exe_path = sys.executable
+
+                    # Inicia o updater em um novo processo e se fecha
+                    subprocess.Popen([updater_path, zip_url, current_exe_path])
+                    self.destroy() # Fecha a janela do app
+                    return True # Sinaliza que a atualização foi iniciada
+        
+        except requests.RequestException:
+            print("Não foi possível verificar por atualizações (sem conexão ou timeout).")
+        except Exception as e:
+            messagebox.showerror("Erro na Verificação", f"Ocorreu um erro ao verificar por atualizações:\n{e}")
+        
+        return False # Nenhuma atualização iniciada
 
     def load_initial_data(self):
         """
@@ -260,11 +287,14 @@ class App(bs.Window):
             ac_port = self.c_ac_port_var.get()
             serie_modalidade = self.c_serie_var.get()
             total_acertos = ac_mat + ac_port
-            pct_bolsa = be.calcula_bolsa(total_acertos, serie_modalidade)
+            pct_bolsa = be.calcula_bolsa(total_acertos, serie_modalidade) # <-- Variável é definida como pct_bolsa
             precos = be.precos_2026(serie_modalidade)
             val_ano = precos["anuidade"] * (1 - pct_bolsa)
             val_parcela_mensal = precos["parcela_mensal"] * (1 - pct_bolsa)
             val_primeira_cota = precos["primeira_cota"] * (1 - pct_bolsa)
+            
+            html_tabelas_material = be.gerar_html_material_didatico(unidade_limpa)
+            
             hoje = be.date.today()
             ctx = {
                 "ano": hoje.year, "unidade": f"Colégio Matriz – {unidade_limpa}",
@@ -275,6 +305,7 @@ class App(bs.Window):
                 "primeira_cota": be.format_currency(val_primeira_cota),
                 "valor_parcela": be.format_currency(val_parcela_mensal),
                 "unidades_html": "".join(f"<span class='unidade-item'>{u}</span>" for u in be.UNIDADES_LIMPAS),
+                "tabelas_material_didatico": html_tabelas_material
             }
             pdf_bytes = be.gera_pdf_html(ctx)
             file_path = filedialog.asksaveasfilename(
@@ -285,11 +316,14 @@ class App(bs.Window):
                 with open(file_path, "wb") as f: f.write(pdf_bytes)
                 messagebox.showinfo("Sucesso", f"Carta PDF salva com sucesso em:\n{file_path}")
                 if messagebox.askyesno("Registrar na Planilha?", "Deseja registrar este resultado na planilha online?"):
+                    
+                    # --- AQUI ESTAVA O ERRO ---
+                    # Corrigido de 'pct' para 'pct_bolsa'
                     self.registrar_na_planilha(aluno, unidade_limpa, turma, ac_mat, ac_port, total_acertos, pct_bolsa, serie_modalidade, ctx)
+                    
         except Exception as e:
             messagebox.showerror("Erro ao Gerar Carta", str(e))
 
-    # --- FUNÇÃO TOTALMENTE REESCRITA PARA CORRIGIR O BUG DE SINCRONIZAÇÃO ---
     def registrar_na_planilha(self, aluno, unidade_limpa, turma, ac_mat, ac_port, total, pct, serie, ctx):
         """Envia os dados gerados para a planilha Resultados_Bolsao e atualiza o estado local."""
         row_data_map = {
@@ -429,7 +463,6 @@ class App(bs.Window):
         self.f_resp_fin_var = tk.StringVar()
         self.f_tel_var = tk.StringVar()
         
-        # MODIFICADO REQ 4: Troca de DoubleVar para StringVar
         self.f_valor_neg_var = tk.StringVar()
         self.f_expectativa_var = tk.StringVar()
 
@@ -485,7 +518,6 @@ class App(bs.Window):
         
         self.populate_form_filters_initial()
 
-        # ADICIONADO REQ 4: Adiciona o trace para formatação automática
         self.f_valor_neg_var.trace_add("write", lambda *args, var=self.f_valor_neg_var: self._validate_and_format_currency(var, *args))
         self.f_expectativa_var.trace_add("write", lambda *args, var=self.f_expectativa_var: self._validate_and_format_currency(var, *args))
 
@@ -514,7 +546,7 @@ class App(bs.Window):
         if bolsao_sel == "Todos" or not bolsao_sel: self.filtered_rows = rows_unit
         else: self.filtered_rows = [r for r in rows_unit if r.get("Bolsão") == bolsao_sel]
         candidatos = [f"{r.get('Nome do Aluno')} ({r.get('REGISTRO_ID')})" for r in self.filtered_rows]
-        self.f_candidato_combo['values'] = sorted(candidatos) # MODIFICADO: Adicionado sorted()
+        self.f_candidato_combo['values'] = sorted(candidatos)
         self.f_candidato_var.set("")
         self.clear_form_fields()
 
@@ -540,7 +572,6 @@ class App(bs.Window):
         self.f_resp_fin_var.set(row.get("Responsável Financeiro", ""))
         self.f_tel_var.set(be.format_phone_mask(row.get("Telefone", "")))
         
-        # MODIFICADO REQ 4: Formata os valores como moeda ao popular
         valor_neg_float = be.parse_brl_to_float(row.get("Valor Negociado", 0.0))
         expectativa_float = be.parse_brl_to_float(expectativa_val)
         self.f_valor_neg_var.set(be.format_currency(valor_neg_float))
@@ -558,7 +589,6 @@ class App(bs.Window):
         self.f_resp_fin_var.set("")
         self.f_tel_var.set("")
         
-        # MODIFICADO REQ 4: Limpa as StringVars
         self.f_valor_neg_var.set("")
         self.f_expectativa_var.set("")
 
@@ -571,7 +601,6 @@ class App(bs.Window):
             messagebox.showwarning("Aviso", "Nenhum candidato selecionado para salvar.")
             return
 
-        # ADICIONADO REQ 2: Validação de campo obrigatório
         escola_origem = self.f_escola_var.get().strip()
         if not escola_origem:
             messagebox.showerror("Campo Obrigatório", "O campo 'Escola de Origem' não pode estar vazio.")
@@ -585,7 +614,6 @@ class App(bs.Window):
             ws_res = be.get_ws("Resultados_Bolsao")
             hmap = be.header_map("Resultados_Bolsao")
             
-            # MODIFICADO REQ 4: Faz o parse dos valores de moeda antes de salvar
             valor_neg_float = be.parse_brl_to_float(self.f_valor_neg_var.get())
             expectativa_float = be.parse_brl_to_float(self.f_expectativa_var.get())
 
@@ -613,7 +641,7 @@ class App(bs.Window):
             if updates_to_batch:
                 be.batch_update_cells(ws_res, updates_to_batch)
                 messagebox.showinfo("Sucesso", "Dados do formulário salvos com sucesso na planilha!")
-                self.snapshot_data = be.load_resultados_snapshot() # Recarrega para ter os dados mais recentes
+                self.snapshot_data = be.load_resultados_snapshot()
                 self.update_form_filters()
             else:
                 messagebox.showinfo("Informação", "Nenhuma alteração para salvar.")
@@ -654,7 +682,6 @@ class App(bs.Window):
             tree.insert("", END, values=formatted_linha)
         tree.pack(expand=True, fill='both', padx=10, pady=10)
     
-    # ADICIONADO REQ 4: Nova função para formatar a entrada de moeda
     def _validate_and_format_currency(self, var: tk.StringVar, *args):
         # Flag para evitar recursão infinita, pois a função modifica a variável que a aciona
         if hasattr(self, '_formatting_in_progress') and self._formatting_in_progress:

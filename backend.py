@@ -27,32 +27,29 @@ from google.oauth2.service_account import Credentials
 SPREAD_URL = "https://docs.google.com/spreadsheets/d/1qBV70qrPswnAUDxnHfBgKEU4FYAISpL7iVP0IM9zU2Q/edit#gid=0"
 
 # --- CORREÇÃO APLICADA AQUI: Uso de aspas triplas para a string de múltiplas linhas ---
-GCP_CREDS_B64 = '''ew0KICAidHlwZSI6ICJzZXJ2aWNlX2FjY291bnQiLA0KICAicHJvamVjdF9pZCI6ICJyYWl6YS1maXJlYmFzZSIsDQogICJwcml2YXRlX2tleV9pZCI6ICJhNT
-MwNzA5Y2EyYWRlYmY2YTkzNTA1ODk2MzMwNzA1MzUzN2ZiN2FhIiwNCiAgInByaXZhdGVfa2V5IjogIi0tLS0tQkVHSU4gUFJJVkFURSBLRVktLS0tLVxuTUlJ
-RXZ3SUJBREFOQmdrcWhraUc5dzBCQVFFRkFBU0NCS2t3Z2dTbEFnRUFBb0lCQVFDN1pFSmtvMmhrc1dmblxubFpjZHh6OUVVSnU4MTF0YWNFZWpOM0g5eUdqKz
-VLOTdFYVNCWU4vaDA5WlhPcmtEcGxCQlRiSU9pVVB4ZHBFRFxuMVFGL240SU90emMyU0M1dURhTkRDcmloSFZRZHIrekVqQTlzRnhmWExibTZWaDBDY29zRE1T
-VmdtRFZBMUVFWVxuNjNUV3VrdXpvTnBWRTI2QVQ1WDU2aE91OExhUk9lcUF0elJlcEFleXhpODNMS0w1eWFRUlhsRWhCVVR1ZlYyM1xuSGx5SEN4SFRoQlpSNz
-JpMzRVYTVLNmlySDNlWXpsL2RzV1ZLMFBQZzNrTkVId251QkNKbS83b0prNE1lMFZZT1xuVlZKSzdOaTA1VHBqNVJidkpNRkVBZUd0cmRMWVRGR08rZWdvSEcy
-VWtGbnhmWEdjMEp3OGNPbG82Zmt6bmZHNlxuaGNlUWFhdGRBZ01CQUFFQ2dnRUFGdld0QzlNWXFKT3krU1V6TDM4WTRaZ2x5TUN6TFBUS1ZqVm1KbFBPaDRLQl
-xuL0toMytURWpKVEoxRmRsNFR6bnFwZUdzNGdxUDlFOFVhLzJHY2pwYkwwM2oraWJrWjNBTTA1dEY3Vm1nVTRYWlxuVXVpZFFCOWhPS2hkMC9hV2xkVHVjdHpy
-NlRhaytiVTM1Nk43dkk1MVZZUXRGQlR1S2xMMSszbWlZVUlWZ0Z2N1xuemprQXdqUkhKKy9mRkZSMnFTdzZBMnd4ZmVHcWFzS1lZRlJabVNTSVJ1eGpTVUZsV1
-lDQVMwRWN3QllxWUF4elxuU08zb0pMNFJKVFVwV2U2c2FmeDlTeUY3OVU1UUNEZUZGS21laHhHMkxESzN5TmpkLzNlcDR3MUtQdWNaSktZWlxuUjBTN21BbUFp
-cWxobWEzZlJ3YnB4U0J5aHVzOUlmR1hzeU5wZG1CY3NRS0JnUUQ3c1plVTRaWWFOSGh5SVkvVVxuR09ISm5lUTFxTWFsL2hHRnVyWWt4Z3RhS3NGQnp3UU81aW
-VSUlp3V3JaaXdBWEU3YmI5NklsZUp2UnFZNlNMTFxuNzV1Z01BdWdtakhlYlJrV0hZMnY5VlV3RXlCQ3J0cUZLNjdtWVBsZ2JJRGw1YWsyNGVIZ0hvQ3Z2bXpV
-djZOdlxuREtFcWJaNVZYaG9HZDNDd0VzVkR1WGRDY1FLQmdRQyttUWJlSHZhUUpVZ21ueHViM3pJVlZOTUpERDNBSTFmdlxuOXBUZXU3SEhINFdxdDk1ZElWU0
-dDeVRsRXpOWTNqL3p4Q0U2YzFFMUxRWXBDSWY1dHU3aFNBSmJBWVo0dUlaV1xuZmFoVUZWUG5KMy9sb3VWYVRaVGhYQ0VWZjBVQ3N2SThlNURSa1VUUWRUN2J0
-Z2h1UnlPTklRZW43cnR5WCtPR1xucTlaVnFvYVZyUUtCZ1FEUjdMUjE2NVVyTkJwRmJ2S3NQemlLMVpNU29qdFZGVXgrRWxWNjVHZHhnL2wrTHZDK1xua0gzdD
-czWVpnQjY2cGVsUVhOLzRPUTUwQm5KWm1SRjVzTlpIUyt0V3YyVGFsSG40OVJ0STZFRnVBSFhHeUZuZlxuK3FnODVDTDZwbVQzMm81QkJUTkVuNHhMaUhMekd3
-ZHdSc05oUk41cmF6b2ZySjBqYmZSejRRdTBNUUtCZ1FDZFxuTTg0c1NsR0hGcGpwOGZWdG5Ldk1XRWd2Z0Q4MlNIQnhaV25vUTlzZnAyb3lJckZ2RXR5S0tvcm
-x2ZTV0Ny9IRFxuZHhNSkNMQUVNZnlRdjQ2WGNrQ1k0ekcrS2dYbGNCeXRIYnRHanNqRE1Sc1dKa01STmtnRGtGOWhRYldEd21CMVxuYmwxRjNKRnJkaWpBUXVX
-MVAwdWRUWTdvL2NqeFR4RjB0Q3AyUWMzN2lRS0JnUURVenlIQUhFZlg0VG0xRGhyaFxua1JnTFhqZHE3RXdaYUNZdzBCVUVNZVg1bnRoZEFVZjJ1VnE1cVUzRW
-15M2pCZ2RQSU1HMGRKOHFGZS8rSkxFQ1xuNGo1Uk80MVhIaHYxRjVLdWhPbWk5Y1RoOWlJcnZCTG9BTm9tV0p3TUZzZmFnc0Q1aUl5ZW5keDYramVCamN6d1xu
-YUlxdWRiYUVvRHJNRUFyQXpxdDZTVmdyWXc9PVxuLS0tLS1FTkQgUFJJVkFURSBLRVktLS0tLVxuIiwNCiAgImNsaWVudF9lbWFpbCI6ICJzaW1wbGlmaWNhQH
-JhaXphLWZpcmViYXNlLmlhbS5nc2VydmljZWFjY291bnQuY29tIiwNCiAgImNsaWVudF9pZCI6ICIxMDEzMjUxNTU2NTg0MzU1OTgwMjYiLA0KICAiYXV0aF91
-cmkiOiAiaHR0cHM6Ly9hY2NvdW50cy5nb29nbGUuY29tL28vb2F1dGgyL2F1dGgiLA0KICAidG9rZW5fdXJpIjogImh0dHBzOi8vb2F1dGgyLmdvb2dsZWFwaX
-MuY29tL3Rva2VuIiwNCiAgImF1dGhfcHJvdmlkZXJfeDUwOV9jZXJ0X3VybCI6ICJodHRwczovL3d3dy5nb29nbGVhcGlzLmNvbS9vYXV0aDIvdjEvY2VydHMi
-LA0KICAiY2xpZW50X3g1MDlfY2VydF91cmwiOiAiaHR0cHM6Ly93d3cuZ29vZ2xlYXBpcy5jb20vcm9ib3QvdjEvbWV0YWRhdGEveDUwOS9zaW1wbGlmaWNhJT
-QwcmFpemEtZmlyZWJhc2UuaWFtLmdzZXJ2aWNlYWNjb3VudC5jb20iLA0KICAidW5pdmVyc2VfZG9tYWluIjogImdvb2dsZWFwaXMuY29tIg0KfQ=='''
+GCP_CREDS_B64 = '''ew0KICAidHlwZSI6ICJzZXJ2aWNlX2FjY291bnQiLA0KICAicHJvamVjdF9pZCI6ICJyYWl6YS1maXJlYmFzZSIsDQogICJwcml2YXRlX2tleV9pZCI6ICJhNTMwNzA5Y2EyYWRlYmY2YTk
+zNTA1ODk2MzMwNzA1MzUzN2ZiN2FhIiwNCiAgInByaXZhdGVfa2V5IjogIi0tLS0tQkVHSU4gUFJJVkFURSBLRVktLS0tLVxuTUlJRXZ3SUJBREFOQmdrcWhraUc5dzBCQVFFRkFBU0NCS2
+t3Z2dTbEFnRUFBb0lCQVFDN1pFSmtvMmhrc1dmblxubFpjZHh6OUVVSnU4MTF0YWNFZWpOM0g5eUdqKzVLOTdFYVNCWU4vaDA5WlhPcmtEcGxCQlRiSU9pVVB4ZHBFRFxuMVFGL240SU90e
+mMyU0M1dURhTkRDcmloSFZRZHIrekVqQTlzRnhmWExibTZWaDBDY29zRE1TVmdtRFZBMUVFWVxuNjNUV3VrdXpvTnBWRTI2QVQ1WDU2aE91OExhUk9lcUF0elJlcEFleXhpODNMS0w1eWFR
+UlhsRWhCVVR1ZlYyM1xuSGx5SEN4SFRoQlpSNzJpMzRVYTVLNmlySDNlWXpsL2RzV1ZLMFBQZzNrTkVId251QkNKbS83b0prNE1lMFZZT1xuVlZKSzdOaTA1VHBqNVJidkpNRkVBZUd0cmR
+MWVRGR08rZWdvSEcyVWtGbnhmWEdjMEp3OGNPbG82Zmt6bmZHNlxuaGNlUWFhdGRBZ01CQUFFQ2dnRUFGdld0QzlNWXFKT3krU1V6TDM4WTRaZ2x5TUN6TFBUS1ZqVm1KbFBPaDRLQlxuL0
+toMytURWpKVEoxRmRsNFR6bnFwZUdzNGdxUDlFOFVhLzJHY2pwYkwwM2oraWJrWjNBTTA1dEY3Vm1nVTRYWlxuVXVpZFFCOWhPS2hkMC9hV2xkVHVjdHpyNlRhaytiVTM1Nk43dkk1MVZZU
+XRGQlR1S2xMMSszbWlZVUlWZ0Z2N1xuemprQXdqUkhKKy9mRkZSMnFTdzZBMnd4ZmVHcWFzS1lZRlJabVNTSVJ1eGpTVUZsV1lDQVMwRWN3QllxWUF4elxuU08zb0pMNFJKVFVwV2U2c2Fm
+eDlTeUY3OVU1UUNEZUZGS21laHhHMkxESzN5TmpkLzNlcDR3MUtQdWNaSktZWlxuUjBTN21BbUFpcWxobWEzZlJ3YnB4U0J5aHVzOUlmR1hzeU5wZG1CY3NRS0JnUUQ3c1plVTRaWWFOSGh
+5SVkvVVxuR09ISm5lUTFxTWFsL2hHRnVyWWt4Z3RhS3NGQnp3UU81aWVSUlp3V3JaaXdBWEU3YmI5NklsZUp2UnFZNlNMTFxuNzV1Z01BdWdtakhlYlJrV0hZMnY5VlV3RXlCQ3J0cUZLNj
+dtWVBsZ2JJRGw1YWsyNGVIZ0hvQ3Z2bXpVdjZOdlxuREtFcWJaNVZYaG9HZDNDd0VzVkR1WGRDY1FLQmdRQyttUWJlSHZhUUpVZ21ueHViM3pJVlZOTUpERDNBSTFmdlxuOXBUZXU3SEhIN
+FdxdDk1ZElWU0dDeVRsRXpOWTNqL3p4Q0U2YzFFMUxRWXBDSWY1dHU3aFNBSmJBWVo0dUlaV1xuZmFoVUZWUG5KMy9sb3VWYVRaVGhYQ0VWZjBVQ3N2SThlNURSa1VUUWRUN2J0Z2h1UnlP
+TklRZW43cnR5WCtPR1xucTlaVnFvYVZyUUtCZ1FEUjdMUjE2NVVyTkJwRmJ2S3NQemlLMVpNU29qdFZGVXgrRWxWNjVHZHhnL2wrTHZDK1xua0gzdDczWVpnQjY2cGVsUVhOLzRPUTUwQm5
+KWm1SRjVzTlpIUyt0V3YyVGFsSG40OVJ0STZFRnVBSFhHeUZuZlxuK3FnODVDTDZwbVQzMm81QkJUTkVuNHhMaUhMekd3ZHdSc05oUk41cmF6b2ZySjBqYmZSejRRdTBNUUtCZ1FDZFxuTT
+g0c1NsR0hGcGpwOGZWdG5Ldk1XRWd2Z0Q4MlNIQnhaV25vUTlzZnAyb3lJckZ2RXR5S0tvcmx2ZTV0Ny9IRFxuZHhNSkNMQUVNZnlRdjQ2WGNrQ1k0ekcrS2dYbGNCeXRIYnRHanNqRE1Sc
+1dKa01STmtnRGtGOWhRYldEd21CMVxuYmwxRjNKRnJkaWpBUXVXMVAwdWRUWTdvL2NqeFR4RjB0Q3AyUWMzN2lRS0JnUURVenlIQUhFZlg0VG0xRGhyaFxua1JnTFhqZHE3RXdaYUNZdzBC
+VUVNZVg1bnRoZEFVZjJ1VnE1cVUzRW15M2pCZ2RQSU1HMGRKOHFGZS8rSkxFQ1xuNGo1Uk80MVhIaHYxRjVLdWhPbWk5Y1RoOWlJcnZCTG9BTm9tV0p3TUZzZmFnc0Q1aUl5ZW5keDYramV
+CamN6d1xuYUlxdWRiYUVvRHJNRUFyQXpxdDZTVmdyWXc9PVxuLS0tLS1FTkQgUFJJVkFURSBLRVktLS0tLVxuIiwNCiAgImNsaWVudF9lbWFpbCI6ICJzaW1wbGlmaWNhQHJhaXphLWZpcm
+ViYXNlLmlhbS5nc2VydmljZWFjY291bnQuY29tIiwNCiAgImNsaWVudF9pZCI6ICIxMDEzMjUxNTU2NTg0MzU1OTgwMjYiLA0KICAiYXV0aF91cmkiOiAiaHR0cHM6Ly9hY2NvdW50cy5nb
+29nbGUuY29tL28vb2F1dGgyL2F1dGgiLA0KICAidG9rZW5fdXJpIjogImh0dHBzOi8vb2F1dGgyLmdvb2dsZWFwaXMuY29tL3Rva2VuIiwNCiAgImF1dGhfcHJvdmlkZXJfeDUwOV9jZXJ0
+X3VybCI6ICJodHRwczovL3d3dy5nb29nbGVhcGlzLmNvbS9vYXV0aDIvdjEvY2VydHMiLA0KICAiY2xpZW50X3g1MDlfY2VydF91cmwiOiAiaHR0cHM6Ly93d3cuZ29vZ2xlYXBpcy5jb20
+vcm9ib3QvdjEvbWV0YWRhdGEveDUwOS9zaW1wbGlmaWNhJTQwcmFpemEtZmlyZWJhc2UuaWFtLmdzZXJ2aWNlYWNjb3VudC5jb20iLA0KICAidW5pdmVyc2VfZG9tYWluIjogImdvb2dsZW
+FwaXMuY29tIg0KfQ=='''
 
 def resource_path(relative_path):
     """ Obtém o caminho absoluto para um recurso, funcionando para dev e para PyInstaller. """
@@ -286,8 +283,6 @@ DESCONTOS_MAXIMOS_POR_UNIDADE = {
 # --------------------------------------------------
 # FUNÇÕES DE LÓGICA E UTILITÁRIOS
 # --------------------------------------------------
-
-# ADICIONADO REQ 3: Nova função para determinar o nome do Bolsão com base na data
 @lru_cache(maxsize=1) # Cache para executar apenas uma vez por sessão
 def get_bolsao_name_for_date(target_date=None):
     """
@@ -299,27 +294,22 @@ def get_bolsao_name_for_date(target_date=None):
 
     try:
         ws_bolsao = get_ws("Bolsão")
-        # Pega os valores da coluna A (Data) e C (Nome do Bolsão) a partir da linha 2
         dates_col = ws_bolsao.col_values(1, value_render_option='FORMATTED_STRING')[1:]
         names_col = ws_bolsao.col_values(3)[1:]
         
         for i, date_str in enumerate(dates_col):
             if i < len(names_col) and names_col[i]: # Garante que há um nome correspondente
                 try:
-                    # Tenta converter a data no formato DD/MM/AAAA
                     bolsao_date = datetime.strptime(date_str, "%d/%m/%Y").date()
                     if bolsao_date == target_date:
-                        return names_col[i] # Retorna o nome do bolsão se a data bater
+                        return names_col[i]
                 except ValueError:
-                    # Ignora datas em formato inválido na planilha
                     continue
         
-        # Se o loop terminar sem encontrar uma data correspondente
         return "Bolsão Avulso"
 
     except Exception as e:
         print(f"Erro ao ler a aba 'Bolsão': {e}")
-        # Em caso de qualquer erro na leitura, retorna o valor padrão
         return "Bolsão Avulso"
 
 def precos_2026(serie_modalidade: str) -> dict:
@@ -440,3 +430,78 @@ def calcula_valor_minimo(unidade, serie_modalidade):
             return 0.0
     except Exception as e:
         raise Exception(f"❌ Erro ao calcular valor mínimo: {e}")
+
+# --- ADICIONADO: Nova função para gerar tabelas de material didático dinamicamente ---
+def gerar_html_material_didatico(unidade: str) -> str:
+    """
+    Gera o código HTML para as tabelas de material didático
+    com base na unidade selecionada.
+    """
+    # Preços que são iguais para TODAS as unidades
+    precos_gerais = {
+        "Medicina": ("R$ 4.009,95", "11x de R$ 364,54"),
+        "Pré-Vestibular": ("R$ 4.009,95", "11x de R$ 364,54"),
+    }
+    
+    precos_militares = {
+        "AFA/EN/EFOMM": ("R$ 2.333,73", "11x de R$ 212,16"),
+        "EPCAR": ("R$ 2.501,36", "11x de R$ 227,40"),
+        "ESA": ("R$ 1.111,98", "11x de R$ 101,09"),
+        "EsPCEx": ("R$ 2.668,97", "11x de R$ 242,63"),
+        "IME/ITA": ("R$ 2.333,73", "11x de R$ 212,16"),
+    }
+
+    # Preços padrão para a maioria das unidades
+    precos_didatico_padrao = {
+        "1ª ao 5ª ano": ("R$ 2.552,80", "11x de R$ 232,07"),
+        "6ª ao 8ª ano": ("R$ 2.765,77", "11x de R$ 251,43"),
+        "9ª ano Vestibular": ("R$ 2.872,69", "11x de R$ 261,15"),
+        "1ª e 2ª série Vestibular": ("R$ 3.399,67", "11x de R$ 309,06"),
+        "3ª série": ("R$ 4.009,95", "11x de R$ 364,54"),
+    }
+
+    # Preços EXCLUSIVOS para unidades específicas
+    precos_sao_joao = {
+        "1ª ao 5ª ano": ("R$ 1.933,56", "11x de R$ 175,78"),
+        "6ª ao 8ª ano": ("R$ 2.020,92", "11x de R$ 183,72"),
+        "9ª ano Vestibular": ("R$ 2.019,84", "11x de R$ 183,62"),
+        "1ª e 2ª série Vestibular": ("R$ 2.474,20", "11x de R$ 224,93"),
+        "3ª série": ("R$ 2.932,21", "11x de R$ 266,56"),
+    }
+    
+    precos_retiro = {
+        "1ª ao 5ª ano": ("R$ 2.552,80", "11x de R$ 232,07"),
+    }
+    
+    # LÓGICA CORRIGIDA para escolher a tabela correta (usando nomes em MAIÚSCULAS)
+    dados_didatico = {}
+    
+    # A unidade vem da lista UNIDADES_LIMPAS, que já está em maiúsculas.
+    if unidade == "SÃO JOÃO DE MERITI":
+        titulo_didatico = "Material Didático (exclusivo São João de Meriti)"
+        dados_didatico = precos_sao_joao
+    elif unidade == "RETIRO DOS ARTISTAS":
+        titulo_didatico = "Material Didático"
+        dados_didatico = precos_didatico_padrao.copy()
+        dados_didatico.update(precos_retiro)
+    else:
+        titulo_didatico = "Material Didático"
+        dados_didatico = precos_didatico_padrao
+
+    # MONTAGEM DO HTML
+    tabela_didatico_html = f'<table class="pag2"><tr><th colspan="3">{titulo_didatico}</th></tr>'
+    for curso, valores in dados_didatico.items():
+        tabela_didatico_html += f'<tr><td>{curso}</td><td>{valores[0]}</td><td>{valores[1]}</td></tr>'
+    tabela_didatico_html += '</table><br>'
+
+    tabela_geral_html = '<table class="pag2"><tr><th colspan="3">Material Didático (geral)</th></tr>'
+    for curso, valores in precos_gerais.items():
+        tabela_geral_html += f'<tr><td>{curso}</td><td>{valores[0]}</td><td>{valores[1]}</td></tr>'
+    tabela_geral_html += '</table><br>'
+    
+    tabela_militares_html = '<table class="pag2"><tr><th colspan="3">Material Militares</th></tr>'
+    for curso, valores in precos_militares.items():
+        tabela_militares_html += f'<tr><td>{curso}</td><td>{valores[0]}</td><td>{valores[1]}</td></tr>'
+    tabela_militares_html += '</table><br>'
+
+    return tabela_didatico_html + tabela_geral_html + tabela_militares_html

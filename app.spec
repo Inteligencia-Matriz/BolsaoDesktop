@@ -1,24 +1,20 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
 
-# Usa a variável SPECPATH, fornecida pelo PyInstaller, 
-# para encontrar o diretório onde o arquivo .spec está.
 spec_dir = SPECPATH
-
 block_cipher = None
 
-# Define a lista de arquivos de dados que serão incluídos no executável
-# O formato é ('caminho/completo/do/arquivo', 'pasta_de_destino_no_exe')
+# CORRIGIDO: Adicionada a vírgula que faltava
 datas_list = [
     (os.path.join(spec_dir, 'carta.html'), '.'),
     (os.path.join(spec_dir, 'style.css'), '.'),
-    (os.path.join(spec_dir, 'images'), 'images')
+    (os.path.join(spec_dir, 'images'), 'images'), # <-- VÍRGULA ADICIONADA AQUI
     (os.path.join(spec_dir, 'dist', 'updater.exe'), '.')
 ]
 
 a = Analysis(
-    [os.path.join(spec_dir, 'app.py')], # Usa o caminho absoluto para o script principal
-    pathex=[spec_dir], # Adiciona a pasta do projeto ao path de busca
+    [os.path.join(spec_dir, 'app.py')],
+    pathex=[spec_dir],
     binaries=[],
     datas=datas_list,
     hiddenimports=[],
@@ -40,18 +36,18 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='GestorBolsao', # Nome do arquivo .exe final
+    name='GestorBolsao',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,  # Garante que a janela de console não apareça
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=os.path.join(spec_dir, 'images', 'matriz.ico')  # Define o ícone do programa
+    icon=os.path.join(spec_dir, 'images', 'matriz.ico')
 )

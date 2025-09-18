@@ -3,3 +3,4 @@ pandas
 weasyprint
 ttkbootstrap
 pyinstaller
+pytz

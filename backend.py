@@ -15,6 +15,8 @@ import sys
 import os
 import base64 
 import json
+import requests # Adicionado para a API de tempo
+import pytz     # Adicionado para o fuso horário
 
 import gspread
 import pandas as pd
@@ -283,22 +285,51 @@ DESCONTOS_MAXIMOS_POR_UNIDADE = {
 # --------------------------------------------------
 # FUNÇÕES DE LÓGICA E UTILITÁRIOS
 # --------------------------------------------------
-@lru_cache(maxsize=1) # Cache para executar apenas uma vez por sessão
+
+# --- ADICIONE A NOVA FUNÇÃO COMPLETA BEM AQUI ---
+def get_current_brasilia_date() -> date:
+    """
+    Obtém a data atual de Brasília a partir de uma API online.
+    Se a API falhar, usa a hora local convertida para o fuso de Brasília como fallback.
+    """
+    try:
+        # Tenta buscar a hora exata da API
+        response = requests.get("http://worldtimeapi.org/api/timezone/America/Sao_Paulo", timeout=3)
+        response.raise_for_status()
+        data = response.json()
+        # Pega a data e hora no formato ISO 8601 e extrai apenas a data
+        current_datetime = datetime.fromisoformat(data['datetime'])
+        return current_datetime.date()
+    except Exception as e:
+        # Se a API falhar (sem internet, etc.), usa o fallback
+        print(f"Aviso: Falha ao buscar hora da API. Usando hora local como fallback. Erro: {e}")
+        utc_now = datetime.utcnow().replace(tzinfo=pytz.utc)
+        br_tz = pytz.timezone("America/Sao_Paulo")
+        brasilia_now = utc_now.astimezone(br_tz)
+        return brasilia_now.date()
+
+
+# --- AGORA, SUBSTITUA A SUA FUNÇÃO get_bolsao_name_for_date ANTIGA POR ESTA NOVA VERSÃO ---
+@lru_cache(maxsize=1)
 def get_bolsao_name_for_date(target_date=None):
     """
     Verifica a data atual contra a aba 'Bolsão' e retorna o nome do bolsão correspondente.
     Se não encontrar, retorna 'Bolsão Avulso'.
     """
     if target_date is None:
-        target_date = date.today()
+        # MODIFICADO: Em vez de date.today(), chama nossa nova função confiável
+        target_date = get_current_brasilia_date()
 
     try:
         ws_bolsao = get_ws("Bolsão")
-        dates_col = ws_bolsao.col_values(1, value_render_option='FORMATTED_STRING')[1:]
-        names_col = ws_bolsao.col_values(3)[1:]
+        dates_cells = ws_bolsao.get('A2:A', value_render_option='FORMATTED_STRING')
+        names_cells = ws_bolsao.get('C2:C')
+        
+        dates_col = [cell[0] for cell in dates_cells if cell]
+        names_col = [cell[0] for cell in names_cells if cell]
         
         for i, date_str in enumerate(dates_col):
-            if i < len(names_col) and names_col[i]: # Garante que há um nome correspondente
+            if i < len(names_col) and names_col[i]:
                 try:
                     bolsao_date = datetime.strptime(date_str, "%d/%m/%Y").date()
                     if bolsao_date == target_date:

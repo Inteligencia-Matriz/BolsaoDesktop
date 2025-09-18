@@ -21,62 +21,60 @@ import ctypes
 import requests
 from packaging.version import parse as parse_version
 import subprocess
-import sys # <-- IMPORTAÇÃO NECESSÁRIA PARA O ATUALIZADOR
+import sys
+
 
 # Importa todas as funções de lógica do nosso outro arquivo
 import backend as be
 
+
 class App(bs.Window):
     def __init__(self, title, size):
         super().__init__(themename="litera")
-
-        # --- LÓGICA DE ATUALIZAÇÃO ---
-        # Antes de fazer qualquer outra coisa, verifica se há uma nova versão
-        # A função check_for_updates foi adicionada mais abaixo na classe
-        if self.check_for_updates():
-            # Se a atualização for iniciada, o programa se fecha.
-            # O 'return' impede que o resto do __init__ seja executado.
-            return 
-        # ----------------------------
         
-        # Define o App User Model ID para a BARRA DE TAREFAS do Windows
         myappid = 'MatrizEducacao.GestorBolsao.Desktop.2-1' 
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
-
-        # Define o ícone da JANELA
         try:
-            icon_path = be.resource_path(os.path.join("images", "matriz.ico"))
-            self.iconbitmap(icon_path)
+            self.icon_path = be.resource_path(os.path.join("images", "matriz.ico"))
+            self.iconbitmap(self.icon_path)
         except tk.TclError:
-            print("Aviso: Ícone 'images/matriz.ico' não encontrado ou inválido.")
+            print("Aviso: Ícone 'images/matriz.ico' não encontrado ou inválido.") # Mantenha o print se quiser
 
-        APP_VERSION = "2.2" 
+        # --- LÓGICA DE ATUALIZAÇÃO ---
+        # A verificação acontece primeiro. Se iniciar uma atualização, o app fecha.
+        if self.check_for_updates():
+            return 
+        # ----------------------------
+
+        APP_VERSION = "2.4" # Versão atual do código-fonte
         self.title(f"{title} v{APP_VERSION}")
         
         self.geometry(f'{size[0]}x{size[1]}')
         self.minsize(size[0], size[1])
         
-        # --- Variáveis de Estado da Aplicação ---
         self.snapshot_data = None
         self.hubspot_df = None
 
-        # Frame de Carregamento
-        self.loading_frame = ttk.Frame(self, padding=20)
-        self.loading_frame.pack(expand=True)
+        # --- NOVA INICIALIZAÇÃO "OFFLINE-FIRST" ---
+        # 1. Constrói a UI imediatamente, com componentes desabilitados.
+        self.setup_main_ui()
+
+        # 2. Mostra um frame de carregamento SOBRE a UI já existente.
+        self.loading_frame = ttk.Frame(self)
+        self.loading_frame.place(relx=0.5, rely=0.5, anchor='center')
         self.loading_label_var = tk.StringVar(value="Conectando e carregando dados...")
         ttk.Label(self.loading_frame, textvariable=self.loading_label_var, font=("-size 12")).pack(pady=10)
         self.progress_bar = ttk.Progressbar(self.loading_frame, mode='indeterminate')
         self.progress_bar.pack(pady=10, fill='x', padx=20)
         self.progress_bar.start()
+        
+        # 3. Agenda o carregamento dos dados para acontecer em segundo plano.
+        self.after(200, self.load_initial_data)
 
-        # Inicia o processo de carregamento de dados.
-        self.load_initial_data()
-
-    # --- FUNÇÃO DE ATUALIZAÇÃO ADICIONADA AQUI ---
     def check_for_updates(self):
-        """Verifica se há uma nova versão no GitHub e inicia o processo de atualização."""
-        CURRENT_VERSION = "2.2" 
-        VERSION_URL = "https://raw.githubusercontent.com/seu-usuario/seu-repositorio/main/version.json"
+        """Verifica, extrai o updater para um local seguro, e inicia a atualização."""
+        CURRENT_VERSION = "2.4" 
+        VERSION_URL = "https://raw.githubusercontent.com/Inteligencia-Matriz/BolsaoDesktop/main/version.json"
 
         try:
             response = requests.get(VERSION_URL, timeout=5)
@@ -86,47 +84,64 @@ class App(bs.Window):
             
             if parse_version(server_version_str) > parse_version(CURRENT_VERSION):
                 if messagebox.askyesno("Atualização Disponível", 
-                                       f"Uma nova versão ({server_version_str}) está disponível.\nDeseja atualizar agora?"):
+                                       f"Uma nova versão ({server_version_str}) está disponível.\nDeseja atualizar agora?",
+                                       parent=self):
                     
-                    updater_path = be.resource_path("updater.exe")
+                    embedded_updater_path = be.resource_path("updater.exe")
+                    temp_dir = os.getenv('TEMP')
+                    stable_updater_path = os.path.join(temp_dir, "updater.exe")
+
+                    with open(embedded_updater_path, 'rb') as f_in:
+                        with open(stable_updater_path, 'wb') as f_out:
+                            f_out.write(f_in.read())
+                    
                     zip_url = data["url"]
                     current_exe_path = sys.executable
 
-                    subprocess.Popen([updater_path, zip_url, current_exe_path])
+                    subprocess.Popen([stable_updater_path, zip_url, current_exe_path])
                     self.destroy()
                     return True
         
         except requests.RequestException:
-            print("Não foi possível verificar por atualizações (sem conexão ou timeout).")
+            print("Não foi possível verificar por atualizações (sem conexão ou timeout).") # Mantenha o print se quiser
         except Exception as e:
-            messagebox.showerror("Erro na Verificação", f"Ocorreu um erro ao verificar por atualizações:\n{e}")
-        
+            messagebox.showerror("Erro na Verificação", f"Ocorreu um erro ao verificar por atualizações:\n{e}", parent=self)
         return False
 
     def load_initial_data(self):
-        """
-        Carrega todos os dados necessários da planilha ao iniciar.
-        Se falhar, tenta novamente a cada 5 segundos.
-        """
+        """Carrega os dados em segundo plano. Se falhar, exibe um erro claro na UI."""
         try:
-            self.loading_label_var.set("Carregando dados do Hubspot...")
             self.hubspot_df = be.get_hubspot_data_for_activation()
-            
-            self.loading_label_var.set("Carregando resultados do bolsão...")
             self.snapshot_data = be.load_resultados_snapshot()
             
             self.progress_bar.stop()
             self.loading_frame.destroy()
-            self.setup_main_ui()
+            self.enable_ui_components(True)
+            self.populate_form_filters_initial()
+            self.sync_offline_data(silent=True)
+            self.update_status_bar()
 
         except Exception as e:
-            self.loading_label_var.set(f"Falha na conexão. Tentando novamente em 5s...\nErro: {e}")
-            self.after(5000, self.load_initial_data)
+            self.progress_bar.stop()
+            self.loading_label_var.set("Falha na conexão com a planilha.")
+            self.progress_bar.pack_forget()
+
+            retry_button = ttk.Button(self.loading_frame, text="Tentar Novamente", command=self.retry_load, style="success.TButton")
+            retry_button.pack(pady=10)
+
+    def retry_load(self):
+        """Função para o botão 'Tentar Novamente'."""
+        for widget in self.loading_frame.winfo_children():
+            if isinstance(widget, ttk.Button):
+                widget.destroy()
+        
+        self.progress_bar.pack(pady=10, fill='x', padx=20)
+        self.loading_label_var.set("Conectando e carregando dados...")
+        self.progress_bar.start()
+        self.after(100, self.load_initial_data)
 
     def setup_main_ui(self):
-        """
-        Constrói a interface principal do programa APÓS os dados serem carregados.
-        """
+        """Constrói a UI principal, mas começa com os widgets desabilitados."""
         self.notebook = ttk.Notebook(self)
         self.notebook.pack(expand=True, fill='both', padx=10, pady=10)
         
@@ -139,9 +154,28 @@ class App(bs.Window):
         self.create_formulario_tab()
         self.create_valores_tab()
         
-        self.sync_offline_data(silent=True)
-        self.update_status_bar()
+        self.enable_ui_components(False) # Começa com a UI desabilitada
 
+    def enable_ui_components(self, enabled: bool):
+        """Habilita ou desabilita todos os widgets interativos da aplicação."""
+        state = 'normal' if enabled else 'disabled'
+        for tab in self.notebook.winfo_children():
+            for widget in tab.winfo_children():
+                self.set_widget_state(widget, state)
+
+    def set_widget_state(self, parent_widget, state):
+        """Função recursiva para alterar o estado de um widget e de todos os seus filhos."""
+        try:
+            if not isinstance(parent_widget, ttk.Label): # Não desabilita labels de texto
+                parent_widget.config(state=state)
+        except tk.TclError:
+            pass
+        
+        for child in parent_widget.winfo_children():
+            self.set_widget_state(child, state)
+            
+    # O restante do código (create_carta_tab, gerar_carta, etc.) permanece inalterado.
+    # Copie e cole todo o resto do seu arquivo app.py aqui.
     # --- ABA 1: GERAR CARTA ---
     def create_carta_tab(self):
         carta_frame = ttk.Frame(self.notebook, padding=10)
@@ -297,7 +331,7 @@ class App(bs.Window):
             
             html_tabelas_material = be.gerar_html_material_didatico(unidade_limpa)
             
-            hoje = be.date.today()
+            hoje = be.get_current_brasilia_date()
             ctx = {
                 "ano": hoje.year, "unidade": f"Colégio Matriz – {unidade_limpa}",
                 "aluno": aluno.strip().title(), "bolsa_pct": f"{pct_bolsa * 100:.0f}",

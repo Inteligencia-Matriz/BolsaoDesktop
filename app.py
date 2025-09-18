@@ -23,30 +23,25 @@ from packaging.version import parse as parse_version
 import subprocess
 import sys
 
-
 # Importa todas as funções de lógica do nosso outro arquivo
 import backend as be
-
 
 class App(bs.Window):
     def __init__(self, title, size):
         super().__init__(themename="litera")
         
-        myappid = 'MatrizEducacao.GestorBolsao.Desktop.2-1' 
+        myappid = 'MatrizEducacao.GestorBolsao.Desktop.2.4' 
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
         try:
             self.icon_path = be.resource_path(os.path.join("images", "matriz.ico"))
             self.iconbitmap(self.icon_path)
         except tk.TclError:
-            print("Aviso: Ícone 'images/matriz.ico' não encontrado ou inválido.") # Mantenha o print se quiser
+            print("Aviso: Ícone 'images/matriz.ico' não encontrado ou inválido.")
 
-        # --- LÓGICA DE ATUALIZAÇÃO ---
-        # A verificação acontece primeiro. Se iniciar uma atualização, o app fecha.
         if self.check_for_updates():
             return 
-        # ----------------------------
-
-        APP_VERSION = "2.4" # Versão atual do código-fonte
+            
+        APP_VERSION = "2.4"
         self.title(f"{title} v{APP_VERSION}")
         
         self.geometry(f'{size[0]}x{size[1]}')
@@ -55,11 +50,8 @@ class App(bs.Window):
         self.snapshot_data = None
         self.hubspot_df = None
 
-        # --- NOVA INICIALIZAÇÃO "OFFLINE-FIRST" ---
-        # 1. Constrói a UI imediatamente, com componentes desabilitados.
         self.setup_main_ui()
 
-        # 2. Mostra um frame de carregamento SOBRE a UI já existente.
         self.loading_frame = ttk.Frame(self)
         self.loading_frame.place(relx=0.5, rely=0.5, anchor='center')
         self.loading_label_var = tk.StringVar(value="Conectando e carregando dados...")
@@ -68,7 +60,6 @@ class App(bs.Window):
         self.progress_bar.pack(pady=10, fill='x', padx=20)
         self.progress_bar.start()
         
-        # 3. Agenda o carregamento dos dados para acontecer em segundo plano.
         self.after(200, self.load_initial_data)
 
     def check_for_updates(self):
@@ -103,9 +94,10 @@ class App(bs.Window):
                     return True
         
         except requests.RequestException:
-            print("Não foi possível verificar por atualizações (sem conexão ou timeout).") # Mantenha o print se quiser
+            print("Não foi possível verificar por atualizações (sem conexão ou timeout).")
         except Exception as e:
             messagebox.showerror("Erro na Verificação", f"Ocorreu um erro ao verificar por atualizações:\n{e}", parent=self)
+        
         return False
 
     def load_initial_data(self):
@@ -154,7 +146,7 @@ class App(bs.Window):
         self.create_formulario_tab()
         self.create_valores_tab()
         
-        self.enable_ui_components(False) # Começa com a UI desabilitada
+        self.enable_ui_components(False)
 
     def enable_ui_components(self, enabled: bool):
         """Habilita ou desabilita todos os widgets interativos da aplicação."""
@@ -166,16 +158,23 @@ class App(bs.Window):
     def set_widget_state(self, parent_widget, state):
         """Função recursiva para alterar o estado de um widget e de todos os seus filhos."""
         try:
-            if not isinstance(parent_widget, ttk.Label): # Não desabilita labels de texto
+            if not isinstance(parent_widget, ttk.Label):
                 parent_widget.config(state=state)
         except tk.TclError:
             pass
         
         for child in parent_widget.winfo_children():
             self.set_widget_state(child, state)
-            
-    # O restante do código (create_carta_tab, gerar_carta, etc.) permanece inalterado.
-    # Copie e cole todo o resto do seu arquivo app.py aqui.
+
+    def _configure_combobox_click(self, combobox_widget):
+        """Configura um Combobox para abrir a lista ao ser clicado em qualquer lugar."""
+        def open_dropdown(event):
+            # --- CORREÇÃO ADICIONADA AQUI ---
+            # Força o foco no widget antes de abrir a lista, resolvendo o "travamento"
+            combobox_widget.focus_set()
+            combobox_widget.event_generate('<Down>')
+        combobox_widget.bind("<Button-1>", open_dropdown)
+
     # --- ABA 1: GERAR CARTA ---
     def create_carta_tab(self):
         carta_frame = ttk.Frame(self.notebook, padding=10)
@@ -191,11 +190,13 @@ class App(bs.Window):
         self.c_unidade_filter_combo = ttk.Combobox(self.load_frame, textvariable=self.c_load_unidade_var, values=be.UNIDADES_LIMPAS, state="readonly")
         self.c_unidade_filter_combo.grid(row=0, column=1, padx=5, pady=5, sticky='ew')
         self.c_unidade_filter_combo.bind("<<ComboboxSelected>>", self.filter_hubspot_candidates_by_unit)
+        self._configure_combobox_click(self.c_unidade_filter_combo)
 
         ttk.Label(self.load_frame, text="Selecione o Candidato:").grid(row=1, column=0, padx=5, pady=5, sticky='w')
         self.c_candidato_combo = ttk.Combobox(self.load_frame, textvariable=self.c_load_candidato_var, state="readonly", height=10)
         self.c_candidato_combo.grid(row=1, column=1, padx=5, pady=5, sticky='ew')
         self.c_candidato_combo.bind("<<ComboboxSelected>>", self.populate_from_hubspot)
+        self._configure_combobox_click(self.c_candidato_combo)
         
         self.filter_hubspot_candidates_by_unit()
 
@@ -229,9 +230,13 @@ class App(bs.Window):
         ttk.Label(self.form_frame, text="Nome do Candidato:").grid(row=0, column=0, padx=5, pady=5, sticky='w')
         ttk.Entry(self.form_frame, textvariable=self.c_nome_var, width=50).grid(row=0, column=1, columnspan=3, padx=5, pady=5, sticky='ew')
         ttk.Label(self.form_frame, text="Unidade:").grid(row=1, column=0, padx=5, pady=5, sticky='w')
-        ttk.Combobox(self.form_frame, textvariable=self.c_unidade_var, values=be.UNIDADES_LIMPAS, state="readonly").grid(row=1, column=1, padx=5, pady=5, sticky='ew')
+        unidade_combo = ttk.Combobox(self.form_frame, textvariable=self.c_unidade_var, values=be.UNIDADES_LIMPAS, state="readonly")
+        unidade_combo.grid(row=1, column=1, padx=5, pady=5, sticky='ew')
+        self._configure_combobox_click(unidade_combo)
         ttk.Label(self.form_frame, text="Turma de Interesse:").grid(row=1, column=2, padx=5, pady=5, sticky='w')
-        ttk.Combobox(self.form_frame, textvariable=self.c_turma_var, values=list(be.TURMA_DE_INTERESSE_MAP.keys()), state="readonly").grid(row=1, column=3, padx=5, pady=5, sticky='ew')
+        turma_combo = ttk.Combobox(self.form_frame, textvariable=self.c_turma_var, values=list(be.TURMA_DE_INTERESSE_MAP.keys()), state="readonly")
+        turma_combo.grid(row=1, column=3, padx=5, pady=5, sticky='ew')
+        self._configure_combobox_click(turma_combo)
         ttk.Label(self.form_frame, text="Acertos - Matemática:").grid(row=2, column=0, padx=5, pady=5, sticky='w')
         self.c_ac_mat_spinbox = ttk.Spinbox(self.form_frame, from_=0, to=12, textvariable=self.c_ac_mat_var, width=8)
         self.c_ac_mat_spinbox.grid(row=2, column=1, padx=5, pady=5, sticky='w')
@@ -409,14 +414,7 @@ class App(bs.Window):
         if self.snapshot_data:
             self.populate_form_filters_initial()
 
-    # ... (O resto do seu código continua aqui, exatamente como você enviou)
-    # ... create_negociacao_tab, create_formulario_tab, etc ...
-    # ...
-    # Eu vou omitir o resto por brevidade, mas ele deve estar presente no seu arquivo.
-    # A única alteração foi no __init__ e a adição da função check_for_updates.
-    # Cole o código completo que eu forneci na mensagem anterior.
-
-# --- ABA 2: NEGOCIAÇÃO ---
+    # --- ABA 2: NEGOCIAÇÃO ---
     def create_negociacao_tab(self):
         neg_frame = ttk.Frame(self.notebook, padding=10)
         self.notebook.add(neg_frame, text='Negociação')
@@ -458,9 +456,13 @@ class App(bs.Window):
         top_frame.pack(fill='x', padx=10, pady=5)
         top_frame.grid_columnconfigure(1, weight=1)
         ttk.Label(top_frame, text="Unidade:").grid(row=0, column=0, padx=5, pady=5, sticky='w')
-        ttk.Combobox(top_frame, textvariable=self.n_unidade_var, values=be.UNIDADES_LIMPAS, state='readonly').grid(row=0, column=1, padx=5, pady=5, sticky='ew')
+        unidade_neg_combo = ttk.Combobox(top_frame, textvariable=self.n_unidade_var, values=be.UNIDADES_LIMPAS, state='readonly')
+        unidade_neg_combo.grid(row=0, column=1, padx=5, pady=5, sticky='ew')
+        self._configure_combobox_click(unidade_neg_combo)
         ttk.Label(top_frame, text="Série/Modalidade:").grid(row=1, column=0, padx=5, pady=5, sticky='w')
-        ttk.Combobox(top_frame, textvariable=self.n_serie_var, values=list(be.TUITION.keys()), state='readonly').grid(row=1, column=1, padx=5, pady=5, sticky='ew')
+        serie_neg_combo = ttk.Combobox(top_frame, textvariable=self.n_serie_var, values=list(be.TUITION.keys()), state='readonly')
+        serie_neg_combo.grid(row=1, column=1, padx=5, pady=5, sticky='ew')
+        self._configure_combobox_click(serie_neg_combo)
         ttk.Separator(neg_frame).pack(fill='x', padx=10, pady=10)
         ttk.Label(neg_frame, textvariable=self.n_valor_minimo_var, font=("-size 12 -weight bold")).pack(pady=5)
         ttk.Separator(neg_frame).pack(fill='x', padx=10, pady=10)
@@ -515,12 +517,15 @@ class App(bs.Window):
         ttk.Label(filter_frame, text="Unidade:").grid(row=0, column=0, padx=5, pady=5, sticky='w')
         self.f_unidade_combo = ttk.Combobox(filter_frame, textvariable=self.f_unidade_var, values=["Carregue os dados..."], state='readonly')
         self.f_unidade_combo.grid(row=0, column=1, padx=5, pady=5, sticky='ew')
+        self._configure_combobox_click(self.f_unidade_combo)
         ttk.Label(filter_frame, text="Bolsão:").grid(row=1, column=0, padx=5, pady=5, sticky='w')
         self.f_bolsao_combo = ttk.Combobox(filter_frame, textvariable=self.f_bolsao_var, values=["Filtre por unidade..."], state='readonly')
         self.f_bolsao_combo.grid(row=1, column=1, padx=5, pady=5, sticky='ew')
+        self._configure_combobox_click(self.f_bolsao_combo)
         ttk.Label(filter_frame, text="Candidato:").grid(row=2, column=0, padx=5, pady=5, sticky='w')
         self.f_candidato_combo = ttk.Combobox(filter_frame, textvariable=self.f_candidato_var, values=["Filtre por bolsão..."], state='readonly', height=15)
         self.f_candidato_combo.grid(row=2, column=1, padx=5, pady=5, sticky='ew')
+        self._configure_combobox_click(self.f_candidato_combo)
         
         edit_frame = ttk.LabelFrame(f_scrolled_frame, text="Editar Registro", padding=10)
         edit_frame.pack(fill='both', expand=True, padx=10, pady=10)
@@ -540,7 +545,9 @@ class App(bs.Window):
         ttk.Entry(edit_frame, textvariable=self.f_expectativa_var).grid(row=5, column=1, padx=5, pady=5, sticky='ew')
 
         ttk.Label(edit_frame, text="Aluno Matriculou?").grid(row=6, column=0, padx=5, pady=5, sticky='w')
-        ttk.Combobox(edit_frame, textvariable=self.f_matriculou_var, values=["", "Sim", "Não"], state='readonly').grid(row=6, column=1, padx=5, pady=5, sticky='ew')
+        matriculou_combo = ttk.Combobox(edit_frame, textvariable=self.f_matriculou_var, values=["", "Sim", "Não"], state='readonly')
+        matriculou_combo.grid(row=6, column=1, padx=5, pady=5, sticky='ew')
+        self._configure_combobox_click(matriculou_combo)
         ttk.Label(edit_frame, text="Observações:").grid(row=7, column=0, padx=5, pady=5, sticky='nw')
         self.f_obs_var = tk.Text(edit_frame, height=4, wrap='word')
         self.f_obs_var.grid(row=7, column=1, padx=5, pady=5, sticky='ew')

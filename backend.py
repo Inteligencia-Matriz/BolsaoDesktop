@@ -15,8 +15,8 @@ import sys
 import os
 import base64 
 import json
-import requests # Adicionado para a API de tempo
-import pytz     # Adicionado para o fuso horário
+import requests 
+import pytz
 
 import gspread
 import pandas as pd
@@ -28,7 +28,6 @@ from google.oauth2.service_account import Credentials
 # --------------------------------------------------
 SPREAD_URL = "https://docs.google.com/spreadsheets/d/1qBV70qrPswnAUDxnHfBgKEU4FYAISpL7iVP0IM9zU2Q/edit#gid=0"
 
-# --- CORREÇÃO APLICADA AQUI: Uso de aspas triplas para a string de múltiplas linhas ---
 GCP_CREDS_B64 = '''ew0KICAidHlwZSI6ICJzZXJ2aWNlX2FjY291bnQiLA0KICAicHJvamVjdF9pZCI6ICJyYWl6YS1maXJlYmFzZSIsDQogICJwcml2YXRlX2tleV9pZCI6ICJhNTMwNzA5Y2EyYWRlYmY2YTk
 zNTA1ODk2MzMwNzA1MzUzN2ZiN2FhIiwNCiAgInByaXZhdGVfa2V5IjogIi0tLS0tQkVHSU4gUFJJVkFURSBLRVktLS0tLVxuTUlJRXZ3SUJBREFOQmdrcWhraUc5dzBCQVFFRkFBU0NCS2
 t3Z2dTbEFnRUFBb0lCQVFDN1pFSmtvMmhrc1dmblxubFpjZHh6OUVVSnU4MTF0YWNFZWpOM0g5eUdqKzVLOTdFYVNCWU4vaDA5WlhPcmtEcGxCQlRiSU9pVVB4ZHBFRFxuMVFGL240SU90e
@@ -56,23 +55,17 @@ FwaXMuY29tIg0KfQ=='''
 def resource_path(relative_path):
     """ Obtém o caminho absoluto para um recurso, funcionando para dev e para PyInstaller. """
     try:
-        # O PyInstaller cria uma pasta temporária e armazena o caminho em _MEIPASS
         base_path = sys._MEIPASS
     except Exception:
-        # Se não estiver rodando via PyInstaller, usa o caminho normal
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
 def get_gspread_client():
     """Conecta ao Google Sheets usando credenciais embutidas no código."""
     try:
-        # Decodifica a string Base64 para obter o JSON original
         decoded_creds_json = base64.b64decode(GCP_CREDS_B64)
-        # Converte o JSON em um dicionário Python
         creds_dict = json.loads(decoded_creds_json)
-
         scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-        # Usa from_service_account_info que aceita um dicionário, em vez de um arquivo
         creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
         return gspread.authorize(creds)
     except Exception as e:
@@ -285,77 +278,62 @@ DESCONTOS_MAXIMOS_POR_UNIDADE = {
 # --------------------------------------------------
 # FUNÇÕES DE LÓGICA E UTILITÁRIOS
 # --------------------------------------------------
-
-# --- ADICIONE A NOVA FUNÇÃO COMPLETA BEM AQUI ---
 def get_current_brasilia_date() -> date:
-    """
-    Obtém a data atual de Brasília a partir de uma API online.
-    Se a API falhar, usa a hora local convertida para o fuso de Brasília como fallback.
-    """
+    """Obtém a data atual de Brasília a partir de uma API online com fallback."""
     try:
-        # Tenta buscar a hora exata da API
         response = requests.get("http://worldtimeapi.org/api/timezone/America/Sao_Paulo", timeout=3)
         response.raise_for_status()
         data = response.json()
-        # Pega a data e hora no formato ISO 8601 e extrai apenas a data
         current_datetime = datetime.fromisoformat(data['datetime'])
         return current_datetime.date()
-    except Exception as e:
-        # Se a API falhar (sem internet, etc.), usa o fallback
-        print(f"Aviso: Falha ao buscar hora da API. Usando hora local como fallback. Erro: {e}")
+    except Exception:
         utc_now = datetime.utcnow().replace(tzinfo=pytz.utc)
         br_tz = pytz.timezone("America/Sao_Paulo")
-        brasilia_now = utc_now.astimezone(br_tz)
-        return brasilia_now.date()
+        return utc_now.astimezone(br_tz).date()
 
-
-# --- AGORA, SUBSTITUA A SUA FUNÇÃO get_bolsao_name_for_date ANTIGA POR ESTA NOVA VERSÃO ---
 @lru_cache(maxsize=1)
 def get_bolsao_name_for_date(target_date=None):
-    """
-    Verifica a data atual contra a aba 'Bolsão' e retorna o nome do bolsão correspondente.
-    Se não encontrar, retorna 'Bolsão Avulso'.
-    """
+    """Verifica a data e retorna o nome do bolsão ou 'Bolsão Avulso'."""
     if target_date is None:
-        # MODIFICADO: Em vez de date.today(), chama nossa nova função confiável
         target_date = get_current_brasilia_date()
-
     try:
         ws_bolsao = get_ws("Bolsão")
         dates_cells = ws_bolsao.get('A2:A', value_render_option='FORMATTED_STRING')
         names_cells = ws_bolsao.get('C2:C')
-        
         dates_col = [cell[0] for cell in dates_cells if cell]
         names_col = [cell[0] for cell in names_cells if cell]
-        
         for i, date_str in enumerate(dates_col):
             if i < len(names_col) and names_col[i]:
                 try:
                     bolsao_date = datetime.strptime(date_str, "%d/%m/%Y").date()
                     if bolsao_date == target_date:
                         return names_col[i]
-                except ValueError:
-                    continue
-        
+                except ValueError: continue
         return "Bolsão Avulso"
+    except Exception: return "Bolsão Avulso"
 
-    except Exception as e:
-        print(f"Erro ao ler a aba 'Bolsão': {e}")
-        return "Bolsão Avulso"
-
+# --- FUNÇÃO CORRIGIDA ---
 def precos_2026(serie_modalidade: str) -> dict:
-    """Calcula os preços para 2026 com base nos valores de 2025 (parcela13)."""
+    """
+    Busca os preços corretos no dicionário TUITION.
+    A chave 'parcela13' é o valor da mensalidade e da primeira cota.
+    """
     base = TUITION.get(serie_modalidade, {})
     if not base:
         return {"primeira_cota": 0.0, "parcela_mensal": 0.0, "anuidade": 0.0}
-    parcela_2026_do_dict = float(base.get("parcela13", 0.0))
-    if parcela_2026_do_dict <= 0:
-        return {"primeira_cota": 0.0, "parcela_mensal": 0.0, "anuidade": 0.0}
-    parcela_2025 = round(parcela_2026_do_dict / 1.10, 2)
-    primeira_cota = parcela_2025
-    parcela_mensal = round(parcela_2025 * 1.093, 2)
-    anuidade = round(primeira_cota + 12 * parcela_mensal, 2)
-    return {"primeira_cota": primeira_cota, "parcela_mensal": parcela_mensal, "anuidade": anuidade}
+    
+    # Usa o valor de 'parcela13' diretamente como a mensalidade base.
+    valor_mensal = float(base.get("parcela13", 0.0))
+    primeira_cota = valor_mensal # A primeira cota é igual à mensalidade base.
+    
+    # Usa a anuidade do dicionário se existir, caso contrário, calcula.
+    anuidade_total = float(base.get("anuidade", primeira_cota + (12 * valor_mensal)))
+    
+    return {
+        "primeira_cota": primeira_cota, 
+        "parcela_mensal": valor_mensal, 
+        "anuidade": anuidade_total
+    }
 
 def calcula_bolsa(acertos: int, serie_modalidade: str | None = None) -> float:
     """
@@ -462,13 +440,11 @@ def calcula_valor_minimo(unidade, serie_modalidade):
     except Exception as e:
         raise Exception(f"❌ Erro ao calcular valor mínimo: {e}")
 
-# --- ADICIONADO: Nova função para gerar tabelas de material didático dinamicamente ---
 def gerar_html_material_didatico(unidade: str) -> str:
     """
     Gera o código HTML para as tabelas de material didático
     com base na unidade selecionada.
     """
-    # Preços que são iguais para TODAS as unidades
     precos_gerais = {
         "Medicina": ("R$ 4.009,95", "11x de R$ 364,54"),
         "Pré-Vestibular": ("R$ 4.009,95", "11x de R$ 364,54"),
@@ -482,7 +458,6 @@ def gerar_html_material_didatico(unidade: str) -> str:
         "IME/ITA": ("R$ 2.333,73", "11x de R$ 212,16"),
     }
 
-    # Preços padrão para a maioria das unidades
     precos_didatico_padrao = {
         "1ª ao 5ª ano": ("R$ 2.552,80", "11x de R$ 232,07"),
         "6ª ao 8ª ano": ("R$ 2.765,77", "11x de R$ 251,43"),
@@ -491,7 +466,6 @@ def gerar_html_material_didatico(unidade: str) -> str:
         "3ª série": ("R$ 4.009,95", "11x de R$ 364,54"),
     }
 
-    # Preços EXCLUSIVOS para unidades específicas
     precos_sao_joao = {
         "1ª ao 5ª ano": ("R$ 1.933,56", "11x de R$ 175,78"),
         "6ª ao 8ª ano": ("R$ 2.020,92", "11x de R$ 183,72"),
@@ -504,10 +478,8 @@ def gerar_html_material_didatico(unidade: str) -> str:
         "1ª ao 5ª ano": ("R$ 2.552,80", "11x de R$ 232,07"),
     }
     
-    # LÓGICA CORRIGIDA para escolher a tabela correta (usando nomes em MAIÚSCULAS)
     dados_didatico = {}
     
-    # A unidade vem da lista UNIDADES_LIMPAS, que já está em maiúsculas.
     if unidade == "SÃO JOÃO DE MERITI":
         titulo_didatico = "Material Didático (exclusivo São João de Meriti)"
         dados_didatico = precos_sao_joao
@@ -519,7 +491,6 @@ def gerar_html_material_didatico(unidade: str) -> str:
         titulo_didatico = "Material Didático"
         dados_didatico = precos_didatico_padrao
 
-    # MONTAGEM DO HTML
     tabela_didatico_html = f'<table class="pag2"><tr><th colspan="3">{titulo_didatico}</th></tr>'
     for curso, valores in dados_didatico.items():
         tabela_didatico_html += f'<tr><td>{curso}</td><td>{valores[0]}</td><td>{valores[1]}</td></tr>'

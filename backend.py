@@ -278,18 +278,25 @@ DESCONTOS_MAXIMOS_POR_UNIDADE = {
 # --------------------------------------------------
 # FUNÇÕES DE LÓGICA E UTILITÁRIOS
 # --------------------------------------------------
-def get_current_brasilia_date() -> date:
-    """Obtém a data atual de Brasília a partir de uma API online com fallback."""
+def get_current_brasilia_datetime() -> datetime:
+    """
+    Obtém a data e hora atuais de Brasília a partir de uma API online.
+    Se a API falhar, usa a hora local convertida para o fuso de Brasília como fallback.
+    Retorna um objeto datetime completo.
+    """
     try:
         response = requests.get("http://worldtimeapi.org/api/timezone/America/Sao_Paulo", timeout=3)
         response.raise_for_status()
         data = response.json()
-        current_datetime = datetime.fromisoformat(data['datetime'])
-        return current_datetime.date()
-    except Exception:
-        utc_now = datetime.utcnow().replace(tzinfo=pytz.utc)
+        return datetime.fromisoformat(data['datetime'])
+    except Exception as e:
+        print(f"Aviso: Falha ao buscar hora da API. Usando hora local como fallback. Erro: {e}")
         br_tz = pytz.timezone("America/Sao_Paulo")
-        return utc_now.astimezone(br_tz).date()
+        return datetime.now(br_tz)
+
+def get_current_brasilia_date() -> date:
+    """Função auxiliar que retorna apenas a data de Brasília."""
+    return get_current_brasilia_datetime().date()
 
 @lru_cache(maxsize=1)
 def get_bolsao_name_for_date(target_date=None):
@@ -312,7 +319,6 @@ def get_bolsao_name_for_date(target_date=None):
         return "Bolsão Avulso"
     except Exception: return "Bolsão Avulso"
 
-# --- FUNÇÃO CORRIGIDA ---
 def precos_2026(serie_modalidade: str) -> dict:
     """
     Busca os preços corretos no dicionário TUITION.
@@ -322,12 +328,9 @@ def precos_2026(serie_modalidade: str) -> dict:
     if not base:
         return {"primeira_cota": 0.0, "parcela_mensal": 0.0, "anuidade": 0.0}
     
-    # Usa o valor de 'parcela13' diretamente como a mensalidade base.
     valor_mensal = float(base.get("parcela13", 0.0))
-    primeira_cota = valor_mensal # A primeira cota é igual à mensalidade base.
-    
-    # Usa a anuidade do dicionário se existir, caso contrário, calcula.
-    anuidade_total = float(base.get("anuidade", primeira_cota + (12 * valor_mensal)))
+    primeira_cota = valor_mensal
+    anuidade_total = float(base.get("anuidade", primeira_cota * 13))
     
     return {
         "primeira_cota": primeira_cota, 
@@ -446,36 +449,36 @@ def gerar_html_material_didatico(unidade: str) -> str:
     com base na unidade selecionada.
     """
     precos_gerais = {
-        "Medicina": ("R$ 4.009,95", "11x de R$ 364,54"),
-        "Pré-Vestibular": ("R$ 4.009,95", "11x de R$ 364,54"),
+        "Medicina": ("R$ 4.109,95", "12x de R$ 342,96"),
+        "Pré-Vestibular": ("R$ 4.109,95", "12x de R$ 342,96"),
     }
     
     precos_militares = {
-        "AFA/EN/EFOMM": ("R$ 2.333,73", "11x de R$ 212,16"),
-        "EPCAR": ("R$ 2.501,36", "11x de R$ 227,40"),
-        "ESA": ("R$ 1.111,98", "11x de R$ 101,09"),
-        "EsPCEx": ("R$ 2.668,97", "11x de R$ 242,63"),
-        "IME/ITA": ("R$ 2.333,73", "11x de R$ 212,16"),
+        "AFA/EN/EFOMM": ("R$ 2.333,73", "12x de R$ 194,48"),
+        "EPCAR": ("R$ 2.501,36", "12x de R$ 208,45"),
+        "ESA": ("R$ 1.111,98", "12x de R$ 92,67"),
+        "EsPCEx": ("R$ 2.668,97", "12x de R$ 222,41"),
+        "IME/ITA": ("R$ 2.333,73", "12x de R$ 194,48"),
     }
 
     precos_didatico_padrao = {
-        "1ª ao 5ª ano": ("R$ 2.552,80", "11x de R$ 232,07"),
-        "6ª ao 8ª ano": ("R$ 2.765,77", "11x de R$ 251,43"),
-        "9ª ano Vestibular": ("R$ 2.872,69", "11x de R$ 261,15"),
-        "1ª e 2ª série Vestibular": ("R$ 3.399,67", "11x de R$ 309,06"),
-        "3ª série": ("R$ 4.009,95", "11x de R$ 364,54"),
+        "1ª ao 5ª ano": ("R$ 2.552,80", "12x de R$ 212,73"),
+        "6ª ao 8ª ano": ("R$ 2.765,77", "12x de R$ 230,48"),
+        "9ª ano Vestibular": ("R$ 2.872,69", "12x de R$ 239,39"),
+        "1ª e 2ª série Vestibular": ("R$ 3.499,67", "12x de R$ 291,64"),
+        "3ª série": ("R$ 4.109,95", "12x de R$ 342,96"),
     }
 
     precos_sao_joao = {
-        "1ª ao 5ª ano": ("R$ 1.933,56", "11x de R$ 175,78"),
-        "6ª ao 8ª ano": ("R$ 2.020,92", "11x de R$ 183,72"),
-        "9ª ano Vestibular": ("R$ 2.019,84", "11x de R$ 183,62"),
-        "1ª e 2ª série Vestibular": ("R$ 2.474,20", "11x de R$ 224,93"),
-        "3ª série": ("R$ 2.932,21", "11x de R$ 266,56"),
+        "1ª ao 5ª ano": ("R$ 1.933,56", "12x de R$ 161,13"),
+        "6ª ao 8ª ano": ("R$ 2.020,92", "12x de R$ 168,41"),
+        "9ª ano Vestibular": ("R$ 2.019,84", "12x de R$ 168,32"),
+        "1ª e 2ª série Vestibular": ("R$ 2.574,20", "12x de R$ 214,52"),
+        "3ª série": ("R$ 3.032,21", "12x de R$ 252,68"),
     }
     
     precos_retiro = {
-        "1ª ao 5ª ano": ("R$ 2.552,80", "11x de R$ 232,07"),
+        "1ª ao 5ª ano": ("R$ 2.552,80", "12x de R$ 212,73"),
     }
     
     dados_didatico = {}
@@ -507,3 +510,4 @@ def gerar_html_material_didatico(unidade: str) -> str:
     tabela_militares_html += '</table><br>'
 
     return tabela_didatico_html + tabela_geral_html + tabela_militares_html
+

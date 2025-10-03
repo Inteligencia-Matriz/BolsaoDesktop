@@ -22,6 +22,7 @@ import requests
 from packaging.version import parse as parse_version
 import subprocess
 import sys
+import re # <-- Adicionado para sanitizar o nome do arquivo
 
 # Importa todas as funções de lógica do nosso outro arquivo
 import backend as be
@@ -30,7 +31,7 @@ class App(bs.Window):
     def __init__(self, title, size):
         super().__init__(themename="litera")
         
-        myappid = 'MatrizEducacao.GestorBolsao.Desktop.2.5' 
+        myappid = 'MatrizEducacao.GestorBolsao.Desktop.2.6' 
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
         try:
             self.icon_path = be.resource_path(os.path.join("images", "matriz.ico"))
@@ -41,7 +42,7 @@ class App(bs.Window):
         if self.check_for_updates():
             return 
             
-        APP_VERSION = "2.5"
+        APP_VERSION = "2.6"
         self.title(f"{title} v{APP_VERSION}")
         
         self.geometry(f'{size[0]}x{size[1]}')
@@ -64,7 +65,7 @@ class App(bs.Window):
 
     def check_for_updates(self):
         """Verifica, extrai o updater para um local seguro, e inicia a atualização."""
-        CURRENT_VERSION = "2.5" 
+        CURRENT_VERSION = "2.6" 
         VERSION_URL = "https://raw.githubusercontent.com/Inteligencia-Matriz/BolsaoDesktop/main/version.json"
 
         try:
@@ -169,8 +170,6 @@ class App(bs.Window):
     def _configure_combobox_click(self, combobox_widget):
         """Configura um Combobox para abrir a lista ao ser clicado em qualquer lugar."""
         def open_dropdown(event):
-            # --- CORREÇÃO ADICIONADA AQUI ---
-            # Força o foco no widget antes de abrir a lista, resolvendo o "travamento"
             combobox_widget.focus_set()
             combobox_widget.event_generate('<Down>')
         combobox_widget.bind("<Button-1>", open_dropdown)
@@ -316,7 +315,7 @@ class App(bs.Window):
             messagebox.showerror("Erro de Cálculo", str(e))
 
     def gerar_carta(self):
-        """Função principal da aba: coleta dados, chama o backend e salva o PDF."""
+        """Coleta dados, prepara o nome do arquivo, gera e salva o PDF."""
         aluno = self.c_nome_var.get()
         if not aluno:
             messagebox.showerror("Erro de Validação", "O nome do candidato é obrigatório.")
@@ -328,15 +327,23 @@ class App(bs.Window):
             ac_port = self.c_ac_port_var.get()
             serie_modalidade = self.c_serie_var.get()
             total_acertos = ac_mat + ac_port
+
+            brasilia_datetime = be.get_current_brasilia_datetime()
+            hoje = brasilia_datetime.date()
+            nome_bolsao = be.get_bolsao_name_for_date(hoje)
+
             pct_bolsa = be.calcula_bolsa(total_acertos, serie_modalidade)
             precos = be.precos_2026(serie_modalidade)
             val_ano = precos["anuidade"] * (1 - pct_bolsa)
             val_parcela_mensal = precos["parcela_mensal"] * (1 - pct_bolsa)
             val_primeira_cota = precos["primeira_cota"] * (1 - pct_bolsa)
             
-            html_tabelas_material = be.gerar_html_material_didatico(unidade_limpa)
+            aluno_safe = re.sub(r'[\\/*?:"<>|]', "", aluno.strip())
+            bolsao_safe = re.sub(r'[\\/*?:"<>|]', "", nome_bolsao.strip()).replace(" ", "_")
+            initial_filename = f"Carta_{aluno_safe}_{bolsao_safe}.pdf"
+            initial_dir = str(Path.home() / "Downloads")
             
-            hoje = be.get_current_brasilia_date()
+            html_tabelas_material = be.gerar_html_material_didatico(unidade_limpa)
             ctx = {
                 "ano": hoje.year, "unidade": f"Colégio Matriz – {unidade_limpa}",
                 "aluno": aluno.strip().title(), "bolsa_pct": f"{pct_bolsa * 100:.0f}",
@@ -348,23 +355,29 @@ class App(bs.Window):
                 "unidades_html": "".join(f"<span class='unidade-item'>{u}</span>" for u in be.UNIDADES_LIMPAS),
                 "tabelas_material_didatico": html_tabelas_material
             }
+            
             pdf_bytes = be.gera_pdf_html(ctx)
+
             file_path = filedialog.asksaveasfilename(
-                defaultextension=".pdf", filetypes=[("PDF files", "*.pdf")],
-                initialfile=f"Carta_Bolsa_{aluno.replace(' ', '_')}.pdf", title="Salvar Carta PDF"
+                initialdir=initial_dir,
+                initialfile=initial_filename,
+                defaultextension=".pdf",
+                filetypes=[("PDF files", "*.pdf")],
+                title="Salvar Carta PDF"
             )
+            
             if file_path:
                 with open(file_path, "wb") as f: f.write(pdf_bytes)
                 messagebox.showinfo("Sucesso", f"Carta PDF salva com sucesso em:\n{file_path}")
                 if messagebox.askyesno("Registrar na Planilha?", "Deseja registrar este resultado na planilha online?"):
-                    self.registrar_na_planilha(aluno, unidade_limpa, turma, ac_mat, ac_port, total_acertos, pct_bolsa, serie_modalidade, ctx)
+                    self.registrar_na_planilha(aluno, unidade_limpa, turma, ac_mat, ac_port, total_acertos, pct_bolsa, serie_modalidade, ctx, brasilia_datetime, nome_bolsao)
         except Exception as e:
             messagebox.showerror("Erro ao Gerar Carta", str(e))
 
-    def registrar_na_planilha(self, aluno, unidade_limpa, turma, ac_mat, ac_port, total, pct, serie, ctx):
-        """Envia os dados gerados para a planilha Resultados_Bolsao e atualiza o estado local."""
+    def registrar_na_planilha(self, aluno, unidade_limpa, turma, ac_mat, ac_port, total, pct, serie, ctx, brasilia_dt, nome_bolsao):
+        """Envia os dados gerados para a planilha Resultados_Bolsao."""
         row_data_map = {
-            "Data/Hora": be.datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+            "Data/Hora": brasilia_dt.strftime("%d/%m/%Y %H:%M:%S"),
             "Nome do Aluno": aluno.strip().title(),
             "Unidade": be.UNIDADES_MAP[unidade_limpa],
             "Turma de Interesse": turma,
@@ -376,16 +389,10 @@ class App(bs.Window):
             "Valor Anuidade à Vista": ctx["anuidade_vista"],
             "Valor da 1ª Cota": ctx["primeira_cota"],
             "Valor da Mensalidade com Bolsa": ctx["valor_parcela"],
-            "REGISTRO_ID": be.new_uuid()
+            "REGISTRO_ID": be.new_uuid(),
+            "Bolsão": nome_bolsao
         }
         
-        try:
-            bolsao_name = be.get_bolsao_name_for_date()
-            row_data_map["Bolsão"] = bolsao_name
-        except Exception as e:
-            print(f"Aviso: Não foi possível determinar o nome do bolsão. Erro: {e}")
-            row_data_map["Bolsão"] = "Bolsão Avulso"
-
         try:
             ws_res = be.get_ws("Resultados_Bolsao")
             hmap_res = be.header_map("Resultados_Bolsao")
@@ -724,7 +731,7 @@ class App(bs.Window):
         tree.pack(expand=True, fill='both', padx=10, pady=10)
     
     def _validate_and_format_currency(self, var: tk.StringVar, *args):
-        # Flag para evitar recursão infinita, pois a função modifica a variável que a aciona
+        # Flag para evitar recursão infinita
         if hasattr(self, '_formatting_in_progress') and self._formatting_in_progress:
             return
         
@@ -732,19 +739,15 @@ class App(bs.Window):
         
         try:
             current_value = var.get()
-            # Limpa o valor para obter apenas os dígitos, aceitando vírgulas e pontos
             digits = "".join(filter(str.isdigit, str(current_value)))
             
             if not digits:
                 var.set("")
             else:
-                # Converte para float (ex: "12345" se torna 123.45)
                 float_value = float(digits) / 100
-                # Formata usando a função do backend
                 formatted_value = be.format_currency(float_value)
                 var.set(formatted_value)
         except (ValueError, tk.TclError):
-            # Ignora erros que podem ocorrer durante a digitação
             pass
         finally:
             self._formatting_in_progress = False
@@ -799,7 +802,6 @@ class App(bs.Window):
 
             if linhas_para_enviar:
                 ws_res.append_rows(linhas_para_enviar, value_input_option="USER_ENTERED")
-                # Limpa a fila se o envio em lote foi bem-sucedido
                 with open("offline_queue.json", "w") as f:
                     json.dump([], f)
                 
@@ -815,3 +817,4 @@ class App(bs.Window):
 if __name__ == '__main__':
     app = App(title="Gestor do Bolsão", size=(800, 650))
     app.mainloop()
+

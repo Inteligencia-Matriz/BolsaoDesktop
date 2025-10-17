@@ -140,9 +140,20 @@
                     <td>{{valor_parcela}}</td>
                 </tr>
             </table>
-            <p class="classificacao"> Classificação: </p>
-            <table class="classificacao">
-                <tr><td>A</td><td>B</td><td>C</td></tr>
+            
+            <!-- ÁREA MODIFICADA: Tabela de Classificação removida e nova tabela de Proposta adicionada -->
+            <p class="proposta-titulo">Proposta Especial</p>
+            <table class="proposta-tabela">
+                <tr>
+                    <th>Oferta Atual</th>
+                    <th>Proposta (+5%)</th>
+                    <th>Valor Final da Parcela</th>
+                </tr>
+                <tr>
+                    <td>{{bolsa_pct}}%</td>
+                    <td>{{proposta_pct}}%</td>
+                    <td>{{proposta_valor}}</td>
+                </tr>
             </table>
 
             <div class="linha-formulario">

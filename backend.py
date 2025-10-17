@@ -223,11 +223,6 @@ def load_resultados_snapshot():
 # --------------------------------------------------
 # DADOS DE REFERÊNCIA E CONFIGURAÇÕES (CONSTANTES)
 # --------------------------------------------------
-BOLSA_MAP = {
-    0: .30, 1: .30, 2: .30, 3: .35, 4: .40, 5: .40, 6: .44, 7: .45, 8: .46, 9: .47,
-    10: .48, 11: .49, 12: .50, 13: .51, 14: .52, 15: .53, 16: .54, 17: .55, 18: .56, 19: .57,
-    20: .60, 21: .65, 22: .70, 23: .80, 24: 1.00,
-}
 TUITION = {
     "1ª e 2ª Série EM Militar": {"anuidade": 36670.00, "parcela13": 2820.77},
     "1ª e 2ª Série EM Vestibular": {"anuidade": 36670.00, "parcela13": 2820.77},
@@ -275,15 +270,83 @@ DESCONTOS_MAXIMOS_POR_UNIDADE = {
     "BANGU": 0.6806, "MADUREIRA": 0.7032, "TIJUCA": 0.6800, "SÃO JOÃO DE MERITI": 0.7197,
 }
 
+# --- NOVA ESTRUTURA PARA REGRAS DE BOLSA ---
+SEGMENTO_MAP = {
+    "1º ao 5º Ano": "EFAI",
+    "6º ao 8º Ano": "EFAF",
+    "9º Ano EF II Militar": "EFAF",
+    "9º Ano EF II Vestibular": "EFAF",
+    "1ª e 2ª Série EM Militar": "EM_CL",
+    "1ª e 2ª Série EM Vestibular": "EM_CL",
+    "3ª Série (PV/PM)": "EM_CL",
+    "3ª Série EM Medicina": "EM_CL",
+    "AFA/EN/EFOMM": "EM_CL",
+    "CN/EPCAr": "EM_CL",
+    "ESA": "EM_CL",
+    "EsPCEx": "EM_CL",
+    "IME/ITA": "EM_CL",
+    "Medicina (Pré)": "EM_CL",
+    "Pré-Vestibular": "EM_CL",
+}
+
+REGRAS_BOLSA_POR_UNIDADE = {
+    "BANGU": {
+        "EFAI": { (0, 2): 0.61, (3, 4): 0.64, (5, 6): 0.67, (7, 8): 0.70, (9, 9): 0.80, (10, 10): 0.90 },
+        "EFAF": { (0, 3): 0.52, (4, 6): 0.55, (7, 9): 0.58, (10, 12): 0.61, (13, 15): 0.64, (16, 19): 0.67, (20, 22): 0.70, (23, 23): 0.90, (24, 24): 1.00 },
+        "EM_CL": { (0, 3): 0.55, (4, 6): 0.58, (7, 9): 0.61, (10, 12): 0.64, (13, 15): 0.67, (16, 19): 0.70, (20, 22): 0.73, (23, 23): 0.90, (24, 24): 1.00 },
+    },
+    "CAMPO GRANDE": {
+        "EFAI": { (0, 2): 0.54, (3, 4): 0.57, (5, 6): 0.60, (7, 8): 0.63, (9, 9): 0.80, (10, 10): 0.90 },
+        "EFAF": { (0, 3): 0.52, (4, 6): 0.55, (7, 9): 0.58, (10, 12): 0.61, (13, 15): 0.64, (16, 19): 0.67, (20, 22): 0.70, (23, 23): 0.90, (24, 24): 1.00 },
+        "EM_CL": { (0, 3): 0.52, (4, 6): 0.55, (7, 9): 0.58, (10, 12): 0.61, (13, 15): 0.64, (16, 19): 0.67, (20, 22): 0.70, (23, 23): 0.90, (24, 24): 1.00 },
+    },
+    "DUQUE DE CAXIAS": {
+        "EFAI": {},
+        "EFAF": { (0, 3): 0.58, (4, 6): 0.61, (7, 9): 0.64, (10, 12): 0.67, (13, 15): 0.70, (16, 19): 0.73, (20, 22): 0.76, (23, 23): 0.90, (24, 24): 1.00 },
+        "EM_CL": { (0, 3): 0.63, (4, 6): 0.64, (7, 9): 0.66, (10, 12): 0.67, (13, 15): 0.70, (16, 19): 0.73, (20, 22): 0.76, (23, 23): 0.90, (24, 24): 1.00 },
+    },
+    "MADUREIRA": {
+        "EFAI": {},
+        "EFAF": { (0, 3): 0.53, (4, 6): 0.56, (7, 9): 0.59, (10, 12): 0.62, (13, 15): 0.65, (16, 19): 0.68, (20, 22): 0.71, (23, 23): 0.90, (24, 24): 1.00 },
+        "EM_CL": { (0, 3): 0.56, (4, 6): 0.59, (7, 9): 0.62, (10, 12): 0.65, (13, 15): 0.68, (16, 19): 0.71, (20, 22): 0.74, (23, 23): 0.90, (24, 24): 1.00 },
+    },
+    "NOVA IGUACU": {
+        "EFAI": { (0, 2): 0.55, (3, 4): 0.58, (5, 6): 0.61, (7, 8): 0.64, (9, 9): 0.80, (10, 10): 0.90 },
+        "EFAF": { (0, 3): 0.55, (4, 6): 0.58, (7, 9): 0.61, (10, 12): 0.64, (13, 15): 0.67, (16, 19): 0.70, (20, 22): 0.73, (23, 23): 0.90, (24, 24): 1.00 },
+        "EM_CL": { (0, 3): 0.58, (4, 6): 0.61, (7, 9): 0.64, (10, 12): 0.67, (13, 15): 0.70, (16, 19): 0.73, (20, 22): 0.76, (23, 23): 0.90, (24, 24): 1.00 },
+    },
+    "RETIRO DOS ARTISTAS": {
+        "EFAI": { (0, 2): 0.51, (3, 4): 0.54, (5, 6): 0.57, (7, 8): 0.60, (9, 9): 0.80, (10, 10): 0.90 },
+        "EFAF": { (0, 3): 0.45, (4, 6): 0.48, (7, 9): 0.51, (10, 12): 0.54, (13, 15): 0.57, (16, 19): 0.60, (20, 22): 0.63, (23, 23): 0.90, (24, 24): 1.00 },
+        "EM_CL": { (0, 3): 0.55, (4, 6): 0.58, (7, 9): 0.61, (10, 12): 0.64, (13, 15): 0.67, (16, 19): 0.70, (20, 22): 0.73, (23, 23): 0.90, (24, 24): 1.00 },
+    },
+    "ROCHA MIRANDA": {
+        "EFAI": { (0, 2): 0.56, (3, 4): 0.59, (5, 6): 0.62, (7, 8): 0.65, (9, 9): 0.80, (10, 10): 0.90 },
+        "EFAF": { (0, 3): 0.53, (4, 6): 0.56, (7, 9): 0.59, (10, 12): 0.62, (13, 15): 0.65, (16, 19): 0.68, (20, 22): 0.71, (23, 23): 0.90, (24, 24): 1.00 },
+        "EM_CL": { (0, 3): 0.56, (4, 6): 0.59, (7, 9): 0.62, (10, 12): 0.65, (13, 15): 0.68, (16, 19): 0.71, (20, 22): 0.74, (23, 23): 0.90, (24, 24): 1.00 },
+    },
+    "SÃO JOÃO DE MERITI": {
+        "EFAI": { (0, 2): 0.62, (3, 4): 0.65, (5, 6): 0.68, (7, 8): 0.71, (9, 9): 0.80, (10, 10): 0.90 },
+        "EFAF": { (0, 3): 0.62, (4, 6): 0.65, (7, 9): 0.68, (10, 12): 0.71, (13, 15): 0.74, (16, 19): 0.77, (20, 22): 0.80, (23, 23): 0.90, (24, 24): 1.00 },
+        "EM_CL": { (0, 3): 0.62, (4, 6): 0.65, (7, 9): 0.68, (10, 12): 0.71, (13, 15): 0.74, (16, 19): 0.77, (20, 22): 0.80, (23, 23): 0.90, (24, 24): 1.00 },
+    },
+    "TAQUARA": {
+        "EFAI": { (0, 2): 0.55, (3, 4): 0.58, (5, 6): 0.61, (7, 8): 0.64, (9, 9): 0.80, (10, 10): 0.90 },
+        "EFAF": { (0, 3): 0.55, (4, 6): 0.58, (7, 9): 0.61, (10, 12): 0.64, (13, 15): 0.67, (16, 19): 0.70, (20, 22): 0.73, (23, 23): 0.90, (24, 24): 1.00 },
+        "EM_CL": { (0, 3): 0.55, (4, 6): 0.58, (7, 9): 0.61, (10, 12): 0.64, (13, 15): 0.67, (16, 19): 0.70, (20, 22): 0.73, (23, 23): 0.90, (24, 24): 1.00 },
+    },
+    "TIJUCA": {
+        "EFAI": {},
+        "EFAF": { (0, 3): 0.59, (4, 6): 0.62, (7, 9): 0.62, (10, 12): 0.65, (13, 15): 0.68, (16, 19): 0.71, (20, 22): 0.74, (23, 23): 0.90, (24, 24): 1.00 },
+        "EM_CL": { (0, 3): 0.59, (4, 6): 0.62, (7, 9): 0.62, (10, 12): 0.65, (13, 15): 0.68, (16, 19): 0.71, (20, 22): 0.74, (23, 23): 0.90, (24, 24): 1.00 },
+    },
+}
+
 # --------------------------------------------------
 # FUNÇÕES DE LÓGICA E UTILITÁRIOS
 # --------------------------------------------------
 def get_current_brasilia_datetime() -> datetime:
-    """
-    Obtém a data e hora atuais de Brasília a partir de uma API online.
-    Se a API falhar, usa a hora local convertida para o fuso de Brasília como fallback.
-    Retorna um objeto datetime completo.
-    """
+    """Obtém a data e hora atuais de Brasília a partir de uma API online com fallback."""
     try:
         response = requests.get("http://worldtimeapi.org/api/timezone/America/Sao_Paulo", timeout=3)
         response.raise_for_status()
@@ -320,10 +383,7 @@ def get_bolsao_name_for_date(target_date=None):
     except Exception: return "Bolsão Avulso"
 
 def precos_2026(serie_modalidade: str) -> dict:
-    """
-    Busca os preços corretos no dicionário TUITION.
-    A chave 'parcela13' é o valor da mensalidade e da primeira cota.
-    """
+    """Busca os preços corretos no dicionário TUITION."""
     base = TUITION.get(serie_modalidade, {})
     if not base:
         return {"primeira_cota": 0.0, "parcela_mensal": 0.0, "anuidade": 0.0}
@@ -338,20 +398,34 @@ def precos_2026(serie_modalidade: str) -> dict:
         "anuidade": anuidade_total
     }
 
-def calcula_bolsa(acertos: int, serie_modalidade: str | None = None) -> float:
+# --- FUNÇÃO DE CÁLCULO DE BOLSA ATUALIZADA ---
+def calcula_bolsa(acertos: int, serie_modalidade: str, unidade: str) -> float:
     """
-    Calcula o percentual de bolsa com base no número de acertos e na série.
-    Contém a regra padrão (24 questões) e a regra especial para o EF1 (10 questões).
+    Calcula o percentual de bolsa com base na unidade, segmento e número de acertos.
     """
-    if serie_modalidade == "1º ao 5º Ano":
-        a = max(0, min(acertos, 10))
-        if a == 0: return 0.0
-        if 1 <= a <= 3: return 0.30
-        if 4 <= a <= 5: return 0.50
-        if 6 <= a <= 8: return 0.60
-        return 0.65
-    ac = max(0, min(acertos, 24))
-    return BOLSA_MAP.get(ac, 0.30)
+    segmento = SEGMENTO_MAP.get(serie_modalidade)
+    if not segmento:
+        print(f"Aviso: Segmento não encontrado para a série '{serie_modalidade}'. Usando 0% de bolsa.")
+        return 0.0
+
+    regras_unidade = REGRAS_BOLSA_POR_UNIDADE.get(unidade)
+    if not regras_unidade:
+        print(f"Aviso: Regras de bolsa não encontradas para a unidade '{unidade}'. Usando 0% de bolsa.")
+        return 0.0
+
+    tabela_bolsa = regras_unidade.get(segmento)
+    if not tabela_bolsa:
+        print(f"Aviso: Segmento '{segmento}' não possui regras de bolsa para a unidade '{unidade}'. Usando 0% de bolsa.")
+        return 0.0
+
+    # Procura a faixa de acertos correta na tabela
+    for (min_acertos, max_acertos), percentual in tabela_bolsa.items():
+        if min_acertos <= acertos <= max_acertos:
+            return percentual
+    
+    # Caso o número de acertos não se encaixe em nenhuma faixa (ex: acertos negativos)
+    print(f"Aviso: Nenhum percentual encontrado para {acertos} acertos no segmento {segmento} da unidade {unidade}. Usando 0%.")
+    return 0.0
 
 def format_currency(v: float) -> str:
     """Formata um número float para uma string de moeda brasileira (ex: R$ 1.234,56)."""

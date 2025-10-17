@@ -22,7 +22,7 @@ import requests
 from packaging.version import parse as parse_version
 import subprocess
 import sys
-import re # <-- Adicionado para sanitizar o nome do arquivo
+import re
 
 # Importa todas as funções de lógica do nosso outro arquivo
 import backend as be
@@ -31,7 +31,7 @@ class App(bs.Window):
     def __init__(self, title, size):
         super().__init__(themename="litera")
         
-        myappid = 'MatrizEducacao.GestorBolsao.Desktop.2.6' 
+        myappid = 'MatrizEducacao.GestorBolsao.Desktop.2.7' 
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
         try:
             self.icon_path = be.resource_path(os.path.join("images", "matriz.ico"))
@@ -42,7 +42,7 @@ class App(bs.Window):
         if self.check_for_updates():
             return 
             
-        APP_VERSION = "2.6"
+        APP_VERSION = "2.7"
         self.title(f"{title} v{APP_VERSION}")
         
         self.geometry(f'{size[0]}x{size[1]}')
@@ -65,7 +65,7 @@ class App(bs.Window):
 
     def check_for_updates(self):
         """Verifica, extrai o updater para um local seguro, e inicia a atualização."""
-        CURRENT_VERSION = "2.6" 
+        CURRENT_VERSION = "2.7" 
         VERSION_URL = "https://raw.githubusercontent.com/Inteligencia-Matriz/BolsaoDesktop/main/version.json"
 
         try:
@@ -225,6 +225,7 @@ class App(bs.Window):
         self.c_turma_var.trace_add("write", update_serie_and_limits)
         self.c_ac_mat_var.trace_add("write", self.calcular_bolsa_display)
         self.c_ac_port_var.trace_add("write", self.calcular_bolsa_display)
+        self.c_unidade_var.trace_add("write", self.calcular_bolsa_display)
 
         ttk.Label(self.form_frame, text="Nome do Candidato:").grid(row=0, column=0, padx=5, pady=5, sticky='w')
         ttk.Entry(self.form_frame, textvariable=self.c_nome_var, width=50).grid(row=0, column=1, columnspan=3, padx=5, pady=5, sticky='ew')
@@ -309,7 +310,8 @@ class App(bs.Window):
         try:
             total = self.c_ac_mat_var.get() + self.c_ac_port_var.get()
             serie = self.c_serie_var.get()
-            pct = be.calcula_bolsa(total, serie)
+            unidade = self.c_unidade_var.get()
+            pct = be.calcula_bolsa(total, serie, unidade)
             self.c_bolsa_resultado_var.set(f"➔ Bolsa obtida: {pct*100:.0f}% ({total} acertos)")
         except Exception as e:
             messagebox.showerror("Erro de Cálculo", str(e))
@@ -332,11 +334,17 @@ class App(bs.Window):
             hoje = brasilia_datetime.date()
             nome_bolsao = be.get_bolsao_name_for_date(hoje)
 
-            pct_bolsa = be.calcula_bolsa(total_acertos, serie_modalidade)
+            pct_bolsa = be.calcula_bolsa(total_acertos, serie_modalidade, unidade_limpa)
             precos = be.precos_2026(serie_modalidade)
             val_ano = precos["anuidade"] * (1 - pct_bolsa)
             val_parcela_mensal = precos["parcela_mensal"] * (1 - pct_bolsa)
             val_primeira_cota = precos["primeira_cota"] * (1 - pct_bolsa)
+            
+            # --- NOVOS CÁLCULOS PARA A PROPOSTA ---
+            proposta_pct = pct_bolsa + 0.05
+            if proposta_pct > 1.0:
+                proposta_pct = 1.0
+            proposta_valor = precos["parcela_mensal"] * (1 - proposta_pct)
             
             aluno_safe = re.sub(r'[\\/*?:"<>|]', "", aluno.strip())
             bolsao_safe = re.sub(r'[\\/*?:"<>|]', "", nome_bolsao.strip()).replace(" ", "_")
@@ -353,7 +361,9 @@ class App(bs.Window):
                 "primeira_cota": be.format_currency(val_primeira_cota),
                 "valor_parcela": be.format_currency(val_parcela_mensal),
                 "unidades_html": "".join(f"<span class='unidade-item'>{u}</span>" for u in be.UNIDADES_LIMPAS),
-                "tabelas_material_didatico": html_tabelas_material
+                "tabelas_material_didatico": html_tabelas_material,
+                "proposta_pct": f"{proposta_pct * 100:.0f}", # <-- Novo valor para o PDF
+                "proposta_valor": be.format_currency(proposta_valor), # <-- Novo valor para o PDF
             }
             
             pdf_bytes = be.gera_pdf_html(ctx)

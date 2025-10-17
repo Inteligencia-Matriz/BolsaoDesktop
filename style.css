@@ -1,17 +1,14 @@
-/* --- Configurações Gerais da Página para Impressão/PDF --- */
 @page {
-  size: A4 portrait; /* Define o tamanho da página como A4 no modo retrato. */
-  margin: 0; /* Remove qualquer margem padrão que o navegador/impressora possa adicionar. */
+  size: A4 portrait;
+  margin: 0;
 }
 @media print {
   th {
-    /* Garante que as cores de fundo (como nos cabeçalhos da tabela) sejam impressas. */
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 }
 
-/* --- Estilos Globais do Documento --- */
 html, body {
   margin: 0;
   padding: 0;
@@ -21,36 +18,31 @@ html, body {
   height: auto;
 }
 
-/* --- Estrutura de Paginação --- */
 .pagina {
-  page-break-after: always; /* Força uma quebra de página depois de cada elemento com esta classe. */
+  page-break-after: always;
 }
 .pagina:last-child {
-  page-break-after: auto; /* Evita uma página em branco extra no final do documento. */
+  page-break-after: auto;
 }
 
-/* --- Container Principal da Carta --- */
 .container {
   position: relative;
   border: 3px solid #1c7c3f;
-  box-sizing: border-box; /* Garante que padding e border não aumentem o tamanho total do elemento. */
+  box-sizing: border-box;
   padding: 0 ;
-  margin: 15mm auto; /* Centraliza o container na página com 15mm de margem superior e inferior. */
+  margin: 15mm auto;
   width: 180mm;
-  /* CORREÇÃO: Define uma altura fixa para o container para que ele ocupe a página inteira. */
-  height: 267mm; 
   background: #fff;
 }
 
-/* Regras específicas de margem para o container dentro da página */
 .pagina .container {
   margin-bottom: 20mm;
 }
+
 .pagina:not(:last-child) .container {
   margin-bottom: 20mm;
 }
 
-/* --- Estilos de Conteúdo (Cabeçalhos, Parágrafos, etc.) --- */
 .logo {
   display: block;
   margin: 0 auto 0 auto;
@@ -104,6 +96,46 @@ p.center2 {
   font-size: 18pt;
 }
 
+/* --- ESTILOS FINAIS PARA PÁGINA 3 --- */
+.linha-formulario {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-column-gap: 8px;
+  align-items: baseline;
+  margin: 10pt auto;
+  max-width: 140mm;
+}
+
+.label-form {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.valor {
+  font-weight: bold;
+  min-height: 1.2em;
+}
+
+.linha-fisica {
+  height: 1px;
+  width: 100%;
+  background-color: #000;
+}
+/* --- FIM DOS ESTILOS PÁGINA 3 --- */
+
+p.Percentual {
+  text-align: center;
+  margin: 8pt auto;
+  max-width: 140mm;
+  line-height: 1.7;
+}
+
 .parabens {
   display: inline-block;
   margin-bottom: 18pt;
@@ -152,7 +184,6 @@ p.documentos {
   padding-right: 10mm;
 }
 
-/* Estilos do Rodapé */
 p.small2 {
   font-size: 10pt;
   line-height: 1.2;
@@ -197,7 +228,6 @@ p.classificacao {
   text-align: center;
 }
 
-/* --- Estilos de Tabelas --- */
 table {
   border-collapse: collapse;
   margin-left: auto;
@@ -254,22 +284,6 @@ table.pag3 th {
   font-size: 11pt !important;
 }
 
-table.classificacao {
-  width: auto;
-  table-layout: fixed;
-  margin-top: 4pt;
-  font-size: 14pt;
-}
-
-table.classificacao th, table.classificacao td {
-  border: 1px solid #030303;
-  padding: 6pt 6pt;
-  text-align: center;
-  width: 60px;
-  min-width: 60px;
-  max-width: 80px;
-}
-
 th, td {
   border: 1px solid #000;
   padding: 4pt;
@@ -286,7 +300,6 @@ th {
   font-size: 12pt;
 }
 
-/* --- Estilos da Página 3 (Ficha Interna) --- */
 .acertos-row {
   display: flex;
   justify-content: center;
@@ -300,54 +313,16 @@ th {
   font-size: 12pt;
 }
 
-.linha-formulario {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-column-gap: 8px;
-  align-items: baseline;
-  margin: 10pt auto;
-  max-width: 140mm;
-}
-
-.label-form {
-  text-align: right;
-  white-space: nowrap;
-}
-
-.campo {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.valor {
-  font-weight: bold;
-  min-height: 1.2em;
-}
-
-.linha-fisica {
-  height: 1px;
-  width: 100%;
-  background-color: #000;
-}
-
-.Percentual {
-  text-align: center;
-  margin: 8pt auto;
-  max-width: 140mm;
-  line-height: 1.7;
-}
-
-/* --- Caixa de Ordem de Atendimento --- */
+/* --- ESTILOS PARA CAIXA DE ORDEM DE ATENDIMENTO --- */
 .ordem-atendimento-box {
-  position: absolute; /* Posiciona o elemento em relação ao container. */
-  top: 5mm;
-  right: 5mm;
+  position: absolute;
+  top: 5mm; /* Distância do topo */
+  right: 5mm; /* Distância da direita */
   border: 1px solid #000;
   padding: 3px 6px;
   text-align: center;
-  width: 35mm;
-  background: #fff;
+  width: 35mm; /* Largura fixa */
+  background: #fff; /* Fundo branco para não ficar transparente sobre a borda verde */
 }
 
 .ordem-label {
@@ -359,5 +334,26 @@ th {
 
 .ordem-numero {
   display: block;
-  height: 10mm; /* Espaço em branco para escrita manual. */
+  height: 10mm; /* Espaço para escrever o número */
+}
+
+/* --- NOVOS ESTILOS PARA A TABELA DE PROPOSTA --- */
+p.proposta-titulo {
+    text-align: center;
+    font-weight: bold;
+    font-size: 12pt;
+    margin: 20pt 0 8pt 0;
+}
+
+table.proposta-tabela {
+    width: 70%;
+    font-size: 12pt;
+}
+
+table.proposta-tabela th {
+    font-size: 10pt;
+}
+
+table.proposta-tabela td {
+    font-size: 11pt;
 }

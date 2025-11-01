@@ -31,7 +31,7 @@ class App(bs.Window):
     def __init__(self, title, size):
         super().__init__(themename="litera")
         
-        myappid = 'MatrizEducacao.GestorBolsao.Desktop.2.7' 
+        myappid = 'MatrizEducacao.GestorBolsao.Desktop.2.8' 
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
         try:
             self.icon_path = be.resource_path(os.path.join("images", "matriz.ico"))
@@ -42,7 +42,7 @@ class App(bs.Window):
         if self.check_for_updates():
             return 
             
-        APP_VERSION = "2.7"
+        APP_VERSION = "2.8"
         self.title(f"{title} v{APP_VERSION}")
         
         self.geometry(f'{size[0]}x{size[1]}')
@@ -65,7 +65,7 @@ class App(bs.Window):
 
     def check_for_updates(self):
         """Verifica, extrai o updater para um local seguro, e inicia a atualização."""
-        CURRENT_VERSION = "2.7" 
+        CURRENT_VERSION = "2.8" 
         VERSION_URL = "https://raw.githubusercontent.com/Inteligencia-Matriz/BolsaoDesktop/main/version.json"
 
         try:
@@ -216,7 +216,7 @@ class App(bs.Window):
             turma = self.c_turma_var.get()
             serie = be.TURMA_DE_INTERESSE_MAP.get(turma, "")
             self.c_serie_var.set(serie)
-            max_acertos = 5 if serie == "1º ao 5º Ano" else 12
+            max_acertos = 10 if serie == "1º ao 5º Ano" else 20
             self.c_ac_mat_spinbox.config(to=max_acertos)
             self.c_ac_port_spinbox.config(to=max_acertos)
             if self.c_ac_mat_var.get() > max_acertos: self.c_ac_mat_var.set(max_acertos)

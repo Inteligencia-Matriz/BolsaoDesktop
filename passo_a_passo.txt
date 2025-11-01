@@ -1,0 +1,88 @@
+No início da função __init__, atualize a versão:
+
+APP_VERSION = "2.8"
+
+
+Ainda no __init__, atualize o myappid:
+
+myappid = 'MatrizEducacao.GestorBolsao.Desktop.2.8' 
+
+
+Dentro da função check_for_updates, atualize a versão atual:
+
+CURRENT_VERSION = "2.8"
+
+
+Salve todos os arquivos.
+
+Fase 2: Compilar os Executáveis
+
+Execute este processo no seu terminal (PowerShell).
+
+Limpeza: Delete as pastas build e dist do seu projeto.
+
+Ative o Ambiente Virtual:
+
+.\venv\Scripts\Activate.ps1
+
+
+Compile o updater.exe primeiro:
+
+pyinstaller Atualizador.spec
+
+
+Compile o Programa Principal GestorBolsao.exe:
+
+pyinstaller app.spec
+
+
+Fase 3: Publicar a Nova Versão no GitHub
+
+Compacte o Novo Programa:
+
+Vá até a pasta dist recém-criada.
+
+Encontre o GestorBolsao.exe (v2.8).
+
+Crie um arquivo .zip a partir dele.
+
+Nomeie o arquivo como GestorBolsao_v2.8.zip.
+
+Crie o "Esqueleto" do Release no GitHub:
+
+Vá para a seção "Releases" do seu repositório Inteligencia-Matriz/BolsaoDesktop.
+
+Clique em "Create a new release".
+
+Tag: v2.8
+
+Título: Versão 2.8 - Atualização EFAI 20 questões
+
+Clique em "Publish release".
+
+Faça o Upload do .zip via Terminal:
+
+Use o comando do GitHub CLI (ajuste o caminho do .zip se necessário):
+
+& "C:\users\lucas.henrique\desktop\gh-cli\bin\gh.exe" release upload v2.8 "C:\BI_Compartilhado\Automacoes\BolsaoDesktop\dist\GestorBolsao_v2.8.zip" --clobber
+
+
+Atualize o Arquivo version.json (O Gatilho):
+
+Copie o novo link de download do GestorBolsao_v2.8.zip da página de releases.
+
+Abra o arquivo version.json no seu computador e altere para:
+
+{
+  "version": "2.8",
+  "url": "SEU_NOVO_LINK_DE_DOWNLOAD_DO_GITHUB_AQUI"
+}
+
+
+Envie as Alterações Finais do Código-Fonte:
+
+Use o Git para salvar todas as suas mudanças (no app.py, backend.py e version.json).
+
+git add .
+git commit -m "Lança a v2.8 com lógica EFAI de 20 questões"
+git push

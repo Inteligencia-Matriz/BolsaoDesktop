@@ -31,7 +31,7 @@ class App(bs.Window):
     def __init__(self, title, size):
         super().__init__(themename="litera")
         
-        myappid = 'MatrizEducacao.GestorBolsao.Desktop.2.8' 
+        myappid = 'MatrizEducacao.GestorBolsao.Desktop.2.9' 
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
         try:
             self.icon_path = be.resource_path(os.path.join("images", "matriz.ico"))
@@ -42,7 +42,7 @@ class App(bs.Window):
         if self.check_for_updates():
             return 
             
-        APP_VERSION = "2.8"
+        APP_VERSION = "2.9"
         self.title(f"{title} v{APP_VERSION}")
         
         self.geometry(f'{size[0]}x{size[1]}')
@@ -56,7 +56,8 @@ class App(bs.Window):
         self.loading_frame = ttk.Frame(self)
         self.loading_frame.place(relx=0.5, rely=0.5, anchor='center')
         self.loading_label_var = tk.StringVar(value="Conectando e carregando dados...")
-        ttk.Label(self.loading_frame, textvariable=self.loading_label_var, font=("-size 12")).pack(pady=10)
+        self.loading_label_var_style = ttk.Label(self.loading_frame, textvariable=self.loading_label_var, font=("-size 12"))
+        self.loading_label_var_style.pack(pady=10)
         self.progress_bar = ttk.Progressbar(self.loading_frame, mode='indeterminate')
         self.progress_bar.pack(pady=10, fill='x', padx=20)
         self.progress_bar.start()
@@ -336,15 +337,49 @@ class App(bs.Window):
 
             pct_bolsa = be.calcula_bolsa(total_acertos, serie_modalidade, unidade_limpa)
             precos = be.precos_2026(serie_modalidade)
-            val_ano = precos["anuidade"] * (1 - pct_bolsa)
-            val_parcela_mensal = precos["parcela_mensal"] * (1 - pct_bolsa)
-            val_primeira_cota = precos["primeira_cota"] * (1 - pct_bolsa)
             
-            # --- NOVOS CÁLCULOS PARA A PROPOSTA ---
+            # --- CÁLCULOS PÁGINA 1: ANUIDADE E PARCELAMENTO NORMAL ---
+            # Anuidade Total com o desconto da Bolsa (Normal)
+            anuidade_com_bolsa = precos["anuidade"] * (1 - pct_bolsa)
+            
+            # Parcelamento padrão (1 + 11 = 12x)
+            val_12x_normal = anuidade_com_bolsa / 12
+
+            # --- CÁLCULOS PÁGINA 1: CONDIÇÃO ESPECIAL (HOJE) ---
+            # Regra: Desconto da bolsa + 5% extra
+            # Valor fixo de entrada: R$ 400,00
+            # Saldo restante em 11x
+            
+            pct_especial_hoje = pct_bolsa + 0.05
+            if pct_especial_hoje > 1.0: 
+                pct_especial_hoje = 1.0
+            
+            # Valor total da anuidade com o desconto especial
+            anuidade_especial_total = precos["anuidade"] * (1 - pct_especial_hoje)
+            
+            # Valor fixo da 1ª parcela
+            entrada_especial = 400.00
+            
+            # Abate a entrada para achar o saldo
+            saldo_restante_especial = anuidade_especial_total - entrada_especial
+            
+            # O saldo é dividido em 11 parcelas
+            val_11x_especial = saldo_restante_especial / 11
+
+            # --- CRIAÇÃO DO TEXTO DINÂMICO PARA O CABEÇALHO ---
+            base_int = int(round(pct_bolsa * 100))
+            total_int = int(round(pct_especial_hoje * 100))
+            # Formato: "Condições de hoje 66% (61% + 5%)"
+            texto_condicao = f"Condições de hoje {total_int}% ({base_int}% + 5%)"
+
+            # --- CÁLCULOS PÁGINA 3: PROPOSTA ESPECIAL (GENÉRICA 13x e 12x) ---
+            # Mantem a lógica de +5% para exibir os planos tradicionais na página 3
             proposta_pct = pct_bolsa + 0.05
-            if proposta_pct > 1.0:
-                proposta_pct = 1.0
-            proposta_valor = precos["parcela_mensal"] * (1 - proposta_pct)
+            if proposta_pct > 1.0: proposta_pct = 1.0
+            anuidade_proposta = precos["anuidade"] * (1 - proposta_pct)
+            
+            prop13_val = anuidade_proposta / 13
+            prop12_val = anuidade_proposta / 12
             
             aluno_safe = re.sub(r'[\\/*?:"<>|]', "", aluno.strip())
             bolsao_safe = re.sub(r'[\\/*?:"<>|]', "", nome_bolsao.strip()).replace(" ", "_")
@@ -352,18 +387,35 @@ class App(bs.Window):
             initial_dir = str(Path.home() / "Downloads")
             
             html_tabelas_material = be.gerar_html_material_didatico(unidade_limpa)
+            
+            # Contexto enviado para o HTML (carta.html)
             ctx = {
-                "ano": hoje.year, "unidade": f"Colégio Matriz – {unidade_limpa}",
-                "aluno": aluno.strip().title(), "bolsa_pct": f"{pct_bolsa * 100:.0f}",
-                "acertos_mat": ac_mat, "acertos_port": ac_port, "turma": turma,
-                "n_parcelas": 12, "data_limite": (hoje + be.timedelta(days=7)).strftime("%d/%m/%Y"),
-                "anuidade_vista": be.format_currency(val_ano * 0.95),
-                "primeira_cota": be.format_currency(val_primeira_cota),
-                "valor_parcela": be.format_currency(val_parcela_mensal),
+                "ano": hoje.year, 
+                "unidade": f"Colégio Matriz – {unidade_limpa}",
+                "aluno": aluno.strip().title(), 
+                "bolsa_pct": f"{pct_bolsa * 100:.0f}",
+                "acertos_mat": ac_mat, 
+                "acertos_port": ac_port, 
+                "turma": turma,
+                "data_limite": (hoje + be.timedelta(days=7)).strftime("%d/%m/%Y"),
+                
+                # Valores Página 1 - Tabela Superior (Normal)
+                "anuidade_total_bolsa": be.format_currency(anuidade_com_bolsa),
+                "val_12x_normal": be.format_currency(val_12x_normal),
+                
+                # Valores Página 1 - Tabela Inferior (Condição de Hoje)
+                # Passamos o texto dinâmico gerado aqui
+                "texto_condicao_hoje": texto_condicao,
+                "entrada_especial": be.format_currency(entrada_especial),
+                "val_11x_especial": be.format_currency(val_11x_especial),
+                
+                # Valores Página 3 (Proposta Especial +5% genérica)
+                "proposta_pct": f"{proposta_pct * 100:.0f}",
+                "prop13_val": be.format_currency(prop13_val),
+                "prop12_val": be.format_currency(prop12_val),
+                
                 "unidades_html": "".join(f"<span class='unidade-item'>{u}</span>" for u in be.UNIDADES_LIMPAS),
                 "tabelas_material_didatico": html_tabelas_material,
-                "proposta_pct": f"{proposta_pct * 100:.0f}", # <-- Novo valor para o PDF
-                "proposta_valor": be.format_currency(proposta_valor), # <-- Novo valor para o PDF
             }
             
             pdf_bytes = be.gera_pdf_html(ctx)
@@ -396,9 +448,9 @@ class App(bs.Window):
             "Total de Acertos": total,
             "% Bolsa": f"{pct*100:.0f}%",
             "Série / Modalidade": serie,
-            "Valor Anuidade à Vista": ctx["anuidade_vista"],
-            "Valor da 1ª Cota": ctx["primeira_cota"],
-            "Valor da Mensalidade com Bolsa": ctx["valor_parcela"],
+            "Valor Anuidade à Vista": ctx["anuidade_total_bolsa"], 
+            "Valor da 1ª Cota": ctx["val_12x_normal"], # Registrando o valor da parcela normal como referência
+            "Valor da Mensalidade com Bolsa": ctx["val_12x_normal"],
             "REGISTRO_ID": be.new_uuid(),
             "Bolsão": nome_bolsao
         }
@@ -827,4 +879,3 @@ class App(bs.Window):
 if __name__ == '__main__':
     app = App(title="Gestor do Bolsão", size=(800, 650))
     app.mainloop()
-

@@ -346,16 +346,16 @@ REGRAS_BOLSA_POR_UNIDADE = {
 # FUNÇÕES DE LÓGICA E UTILITÁRIOS
 # --------------------------------------------------
 def get_current_brasilia_datetime() -> datetime:
-    """Obtém a data e hora atuais de Brasília a partir de uma API online com fallback."""
+    """Obtém a data e hora atuais de Brasília usando o horário do sistema."""
+    # Removemos a consulta à API externa instável (worldtimeapi)
+    # e usamos direto o pytz, que é robusto e rápido.
     try:
-        response = requests.get("http://worldtimeapi.org/api/timezone/America/Sao_Paulo", timeout=3)
-        response.raise_for_status()
-        data = response.json()
-        return datetime.fromisoformat(data['datetime'])
-    except Exception as e:
-        print(f"Aviso: Falha ao buscar hora da API. Usando hora local como fallback. Erro: {e}")
         br_tz = pytz.timezone("America/Sao_Paulo")
         return datetime.now(br_tz)
+    except Exception as e:
+        # Fallback extremo caso o pytz falhe, usa o horário local da máquina sem timezone
+        print(f"Aviso: Erro ao definir timezone. Usando hora local do sistema. Erro: {e}")
+        return datetime.now()
 
 def get_current_brasilia_date() -> date:
     """Função auxiliar que retorna apenas a data de Brasília."""
@@ -368,10 +368,13 @@ def get_bolsao_name_for_date(target_date=None):
         target_date = get_current_brasilia_date()
     try:
         ws_bolsao = get_ws("Bolsão")
+        if not ws_bolsao: return "Bolsão Avulso" # Proteção caso a aba não carregue
+        
         dates_cells = ws_bolsao.get('A2:A', value_render_option='FORMATTED_STRING')
         names_cells = ws_bolsao.get('C2:C')
         dates_col = [cell[0] for cell in dates_cells if cell]
         names_col = [cell[0] for cell in names_cells if cell]
+        
         for i, date_str in enumerate(dates_col):
             if i < len(names_col) and names_col[i]:
                 try:

@@ -5,6 +5,103 @@
     <title>Carta de Bolsa</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* --- CORREÇÃO ESTRUTURAL DO CONTAINER --- */
+        .container {
+            /* Altura fixa calculada para A4 (297mm) menos margens (approx 30mm) */
+            height: 265mm !important; 
+            position: relative;
+            box-sizing: border-box;
+            /* Espaço reservado no final para o rodapé não ficar em cima do texto */
+            padding-bottom: 50mm; 
+        }
+
+        /* --- ESTILOS PARA A NOVA TABELA DA PÁGINA 1 --- */
+        .tabela-novos-planos {
+            width: 80%;
+            border-collapse: collapse;
+            margin: 10px auto;
+            font-size: 12pt;
+        }
+
+        .tabela-novos-planos td, .tabela-novos-planos th {
+            border: 1px solid #000;
+            padding: 6px;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .tabela-novos-planos th {
+            background-color: #1c7c3f;
+            color: white;
+            font-weight: bold;
+            font-size: 12pt;
+        }
+
+        .valor-destaque {
+            font-weight: bold;
+            color: #000;
+            font-size: 12pt;
+        }
+
+        .linha-ou td {
+            border-left: none;
+            border-right: none;
+            font-weight: bold;
+            font-size: 12pt;
+            padding: 4px;
+            background-color: #fff;
+        }
+
+        .espaco-tabela td {
+            border: none;
+            height: 25px;
+            background-color: transparent;
+        }
+
+        .sub-header {
+            font-weight: bold;
+            background-color: #f2f2f2;
+            color: #1c7c3f;
+        }
+
+        /* --- ESTILOS PÁGINA 3 --- */
+        .proposta-titulo {
+            text-align: center;
+            font-weight: bold;
+            font-size: 14pt;
+            margin: 25pt 0 10pt 0;
+            color: #1c7c3f;
+            text-transform: uppercase;
+        }
+
+        .tabela-parcelas {
+            width: 80%;
+            margin-top: 10px;
+        }
+        
+        .aviso-desconto-box {
+            background-color: #1c7c3f;
+            color: white;
+            padding: 8px;
+            font-weight: bold;
+            font-size: 11pt;
+            text-align: center;
+            border: 1px solid #000;
+        }
+
+        /* --- RODAPÉ UNIFICADO (FIXO NO FINAL DA BORDA) --- */
+        .footer-absoluto {
+            position: absolute;
+            bottom: 5mm; /* Cola no final do container verde */
+            left: 0; 
+            right: 0;
+            width: 100%;
+            text-align: center;
+            padding: 0 10px; /* Margem lateral interna */
+        }
+
+    </style>
 </head>
 <body>
     <div class="pagina">
@@ -14,13 +111,12 @@
                 <span class="ordem-numero"></span>
             </div>
             <img src="images/logo.png" alt="Matriz Logotipo" class="logo">
-            <h1>BOLSÃO 2026</h1>
+            <h1>BOLSÃO {{ano}}</h1>
             <h2 class="subtitulo">{{unidade}}</h2>
             <p class="intro">
                 Seja bem-vindo(a)! Nossa escola é a concretização da vivência de um
                 grupo de educadores muito experiente, que acredita que a única forma de mudar a realidade do nosso país é
-                através de uma política pedagógica baseada em valores, atrelada à alta performance. Acreditamos que, com
-                base em planejamento, estudo, determinação e confiança, qualquer sonho poderá ser alcançado.
+                através de uma política pedagógica baseada em valores, atrelada à alta performance.
             </p>
             <p class="center"><strong>JUNTOS construiremos o caminho até SEU SONHO!</strong></p>
             <p class="center">
@@ -28,31 +124,46 @@
                 <span class="bolsa">Você conquistou <strong>BOLSA de {{bolsa_pct}}%</strong>, com {{acertos_mat}} acertos em Matemática e {{acertos_port}} em Português,<br>
                 para a turma <strong>{{turma}}</strong>.</span>
             </p>
+            
             <p class="planos"><strong>Veja os planos de pagamento para estudar conosco com essa bolsa:</strong></p>
-            <table class="pag1">
+            
+            <table class="tabela-novos-planos">
                 <tr>
-                    <th>Anuidade à Vista (-5%) até {{data_limite}}</th>
-                    <th>1ª Cota</th>
-                    <th>{{n_parcelas}}× Cotas (Jan a Dez)</th>
+                    <td style="font-weight: bold;">Anuidade</td>
+                    <td class="valor-destaque">{{anuidade_total_bolsa}}</td>
+                </tr>
+                <tr class="linha-ou">
+                    <td colspan="2">Ou</td>
                 </tr>
                 <tr>
-                    <td>{{anuidade_vista}}</td>
-                    <td>{{primeira_cota}}</td>
-                    <td>{{valor_parcela}}</td>
+                    <td>12 parcelas de</td>
+                    <td class="valor-destaque">{{val_12x_normal}}</td>
+                </tr>
+                <tr class="espaco-tabela"><td colspan="2"></td></tr>
+                <tr>
+                    <th colspan="2">{{texto_condicao_hoje}}</th>
+                </tr>
+                <tr>
+                    <td class="sub-header">1ª parcela</td>
+                    <td class="sub-header">11 Parcelas de</td>
+                </tr>
+                <tr>
+                    <td class="valor-destaque">{{entrada_especial}}</td>
+                    <td class="valor-destaque">{{val_11x_especial}}</td>
                 </tr>
             </table>
-            <p class="small"><strong> Documentos para matrícula</strong></p><br>
-            <p class="documentos">Responsável financeiro: RG, CPF e comprovante de residência;<br>
-                Aluno: RG, CPF, certidão de nascimento, atestado de fator RH, declaração escolar, histórico escolar e 2 fotos 3×4.
-            </p>
-            <p class="center2"><strong>Garanta sua vaga!</strong></p>
-            <p class="small2">
-                <span class="horario">Horário de funcionamento: 2ª a 6ª feira (7h às 19h) sábado (8h às 12h).</span>
-                <span class="data_limite">OBS: Essa bolsa é válida até o dia {{data_limite}}</span>
+
+            <p class="center2" style="margin-top: 30px;"><strong>Garanta sua vaga!</strong></p>
+            
+            <div class="footer-absoluto">
+                <p class="small2">
+                    <span class="horario">Horário de funcionamento: 2ª a 6ª feira (7h às 19h) sábado (8h às 12h).</span><br>
+                    <span class="data_limite">OBS: Essa bolsa é válida até o dia {{data_limite}}</span>
+                </p>
                 <div class="unidades-container">
                     {{unidades_html}}
                 </div>
-            </p>
+            </div>
         </div>
     </div>
 
@@ -64,20 +175,23 @@
 
             <p class="indica">Quem confia, indica!</p>
             <img src="images/qr-code.png" alt="Qr Code" class="logo"><br><br><br><br>
-            <p class="small2">
-                <span class="horario">Horário de funcionamento: 2ª a 6ª feira (7h às 19h) sábado (8h às 12h).</span>
-                <span class="data_limite">OBS: Essa bolsa é válida até o dia {{data_limite}}</span>
+            
+            <div class="footer-absoluto">
+                <p class="small2">
+                    <span class="horario">Horário de funcionamento: 2ª a 6ª feira (7h às 19h) sábado (8h às 12h).</span><br>
+                    <span class="data_limite">OBS: Essa bolsa é válida até o dia {{data_limite}}</span>
+                </p>
                 <div class="unidades-container">
                     {{unidades_html}}
                 </div>
-            </p>
+            </div>
         </div>
     </div>
 
     <div class="pagina">
         <div class="container">
             <img src="images/logo.png" alt="Matriz Logotipo" class="logo">
-            <h1>BOLSÃO 2026</h1>
+            <h1>BOLSÃO {{ano}}</h1>
             <h2 class="subtitulo">{{unidade}}</h2>
             <h2>INFORMAÇÕES ADICIONAIS</h2>
 
@@ -130,33 +244,34 @@
             </div>
             <p class="Percentual">Bolsão Percentual: <strong>{{bolsa_pct}}%</strong></p>
             
-            <table class="pag3">
-                <tr>
-                    <th>1ª Cota</th>
-                    <th>12 Cotas (Jan - Dez)</th>
-                </tr>
-                <tr>
-                    <td>{{primeira_cota}}</td>
-                    <td>{{valor_parcela}}</td>
-                </tr>
-            </table>
+            <div class="proposta-titulo">PROPOSTA ESPECIAL (+5%)</div>
+            <p style="font-size: 10pt; margin-bottom: 10px; text-align: center;">Considerando uma bolsa de <strong>{{proposta_pct}}%</strong>:</p>
             
-            <!-- ÁREA MODIFICADA: Tabela de Classificação removida e nova tabela de Proposta adicionada -->
-            <p class="proposta-titulo">Proposta Especial</p>
-            <table class="proposta-tabela">
+            <table class="pag3 tabela-parcelas">
                 <tr>
-                    <th>Oferta Atual</th>
-                    <th>Proposta (+5%)</th>
-                    <th>Valor Final da Parcela</th>
+                    <td colspan="4" class="aviso-desconto-box">Valores com +5% de Desconto</td>
                 </tr>
                 <tr>
-                    <td>{{bolsa_pct}}%</td>
-                    <td>{{proposta_pct}}%</td>
-                    <td>{{proposta_valor}}</td>
+                    <th>Plano</th>
+                    <th>1ª Parcela</th>
+                    <th>Demais Parcelas</th>
+                    <th>Período</th>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold;">13 Parcelas</td>
+                    <td>{{prop13_val}}</td>
+                    <td>{{prop13_val}}</td>
+                    <td style="white-space: nowrap;">(Jan a Dez)</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold;">12 Parcelas</td>
+                    <td>{{prop12_val}}</td>
+                    <td>{{prop12_val}}</td>
+                    <td style="white-space: nowrap;">(Fev a Dez)</td>
                 </tr>
             </table>
 
-            <div class="linha-formulario">
+            <div class="linha-formulario" style="margin-top: 20px;">
                 <span class="label-form">Proposta:</span>
                 <div class="campo">
                     <span class="valor">&nbsp;</span>
@@ -177,15 +292,16 @@
                     <div class="linha-fisica"></div>
                 </div>
             </div>
-            <br><br><br>
             
-            <p class="small2">
-                <span class="horario">Horário de funcionamento: 2ª a 6ª feira (7h às 19h) sábado (8h às 12h).</span><br>
-                <br><span class="data_limite">OBS: Essa bolsa é válida até o dia {{data_limite}}</span><br>
+            <div class="footer-fluxo">
+                <p class="small2">
+                    <span class="horario">Horário de funcionamento: 2ª a 6ª feira (7h às 19h) sábado (8h às 12h).</span><br>
+                    <span class="data_limite">OBS: Essa bolsa é válida até o dia {{data_limite}}</span>
+                </p>
                 <div class="unidades-container">
                     {{unidades_html}}
                 </div>
-            </p>
+            </div>
         </div>
     </div>
 </body>

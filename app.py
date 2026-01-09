@@ -31,7 +31,7 @@ class App(bs.Window):
     def __init__(self, title, size):
         super().__init__(themename="litera")
         
-        myappid = 'MatrizEducacao.GestorBolsao.Desktop.2.9' 
+        myappid = 'MatrizEducacao.GestorBolsao.Desktop.2.9.1' 
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
         try:
             self.icon_path = be.resource_path(os.path.join("images", "matriz.ico"))
@@ -42,7 +42,7 @@ class App(bs.Window):
         if self.check_for_updates():
             return 
             
-        APP_VERSION = "2.9"
+        APP_VERSION = "2.9.1"
         self.title(f"{title} v{APP_VERSION}")
         
         self.geometry(f'{size[0]}x{size[1]}')
@@ -66,7 +66,7 @@ class App(bs.Window):
 
     def check_for_updates(self):
         """Verifica, extrai o updater para um local seguro, e inicia a atualização."""
-        CURRENT_VERSION = "2.8" 
+        CURRENT_VERSION = "2.9.1" 
         VERSION_URL = "https://raw.githubusercontent.com/Inteligencia-Matriz/BolsaoDesktop/main/version.json"
 
         try:

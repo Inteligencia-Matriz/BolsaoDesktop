@@ -16,3 +16,7 @@ encode_creds.py
 credencial_codificada.txt
 update_error_log.txt
 offline_queue.json
+
+# --- SEGURANÇA: Credenciais do Google ---
+gcp_service_account.json
+client_secret.json

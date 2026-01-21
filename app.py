@@ -31,7 +31,11 @@ class App(bs.Window):
     def __init__(self, title, size):
         super().__init__(themename="litera")
         
-        myappid = 'MatrizEducacao.GestorBolsao.Desktop.2.9.1' 
+        # --- DEFINIÇÃO CENTRAL DA VERSÃO ---
+        # Alterar aqui atualiza para todo o sistema (Update, Título, ID)
+        self.APP_VERSION = "2.9.2"
+        
+        myappid = f'MatrizEducacao.GestorBolsao.Desktop.{self.APP_VERSION}' 
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
         try:
             self.icon_path = be.resource_path(os.path.join("images", "matriz.ico"))
@@ -39,11 +43,11 @@ class App(bs.Window):
         except tk.TclError:
             print("Aviso: Ícone 'images/matriz.ico' não encontrado ou inválido.")
 
+        # Verifica atualização usando a versão definida acima
         if self.check_for_updates():
             return 
             
-        APP_VERSION = "2.9.1"
-        self.title(f"{title} v{APP_VERSION}")
+        self.title(f"{title} v{self.APP_VERSION}")
         
         self.geometry(f'{size[0]}x{size[1]}')
         self.minsize(size[0], size[1])
@@ -66,7 +70,7 @@ class App(bs.Window):
 
     def check_for_updates(self):
         """Verifica, extrai o updater para um local seguro, e inicia a atualização."""
-        CURRENT_VERSION = "2.9.1" 
+        # CORREÇÃO: Usa a versão definida no __init__ em vez de valor fixo
         VERSION_URL = "https://raw.githubusercontent.com/Inteligencia-Matriz/BolsaoDesktop/main/version.json"
 
         try:
@@ -75,7 +79,8 @@ class App(bs.Window):
             data = response.json()
             server_version_str = data["version"]
             
-            if parse_version(server_version_str) > parse_version(CURRENT_VERSION):
+            # Compara a versão do servidor com a versão atual da classe (self.APP_VERSION)
+            if parse_version(server_version_str) > parse_version(self.APP_VERSION):
                 if messagebox.askyesno("Atualização Disponível", 
                                        f"Uma nova versão ({server_version_str}) está disponível.\nDeseja atualizar agora?",
                                        parent=self):

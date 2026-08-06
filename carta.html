@@ -8,15 +8,13 @@
     <style>
         /* --- CORREÇÃO ESTRUTURAL DO CONTAINER --- */
         .container {
-            /* Altura fixa calculada para A4 (297mm) menos margens (approx 30mm) */
             height: 265mm !important; 
             position: relative;
             box-sizing: border-box;
-            /* Espaço reservado no final para o rodapé não ficar em cima do texto */
             padding-bottom: 50mm; 
         }
 
-        /* --- ESTILOS PARA A NOVA TABELA DA PÁGINA 1 --- */
+        /* --- ESTILOS TABELAS GERAIS --- */
         .tabela-novos-planos {
             width: 80%;
             border-collapse: collapse;
@@ -70,14 +68,14 @@
             text-align: center;
             font-weight: bold;
             font-size: 14pt;
-            margin: 25pt 0 10pt 0;
+            margin: 10pt 0 5pt 0; /* Margem reduzida no topo */
             color: #1c7c3f;
             text-transform: uppercase;
         }
 
         .tabela-parcelas {
             width: 80%;
-            margin-top: 10px;
+            margin-top: 5px;
         }
         
         .aviso-desconto-box {
@@ -90,15 +88,42 @@
             border: 1px solid #000;
         }
 
+        /* --- ESTILOS PARA TABELA COMPACTA (PÁGINA 3) --- */
+        .tabela-compacta {
+            width: 70% !important; /* Mais estreita */
+            margin: 5px auto !important; /* Margem superior reduzida */
+            font-size: 10pt !important; /* Fonte menor */
+        }
+        
+        .tabela-compacta th {
+            font-size: 10pt !important;
+            padding: 4px !important;
+        }
+
+        .tabela-compacta td {
+            padding: 3px !important;
+            font-size: 10pt !important;
+        }
+
         /* --- RODAPÉ UNIFICADO (FIXO NO FINAL DA BORDA) --- */
         .footer-absoluto {
             position: absolute;
-            bottom: 5mm; /* Cola no final do container verde */
+            bottom: 5mm; 
             left: 0; 
             right: 0;
             width: 100%;
             text-align: center;
-            padding: 0 10px; /* Margem lateral interna */
+            padding: 0 10px; 
+        }
+        
+        /* --- ESTILOS ESPECÍFICOS PARA O RODAPÉ DA PÁGINA 3 --- */
+        /* Remove o horário e aperta as margens para não sobrepor */
+        .footer-pag3 .horario {
+            display: none;
+        }
+        
+        .footer-pag3 p.small2 {
+            margin: 0 auto 2pt auto; /* Margem inferior mínima */
         }
 
     </style>
@@ -242,10 +267,11 @@
                 <p class="acertos">Acertos em <br>Português: <strong>{{acertos_port}}</strong></p>
                 <p class="acertos">Acertos em <br>Matemática: <strong>{{acertos_mat}}</strong></p>
             </div>
-            <p class="Percentual">Bolsão Percentual: <strong>{{bolsa_pct}}%</strong></p>
+            
+            <p class="Percentual" style="margin-bottom: 5pt;">Bolsão Percentual: <strong>{{bolsa_pct}}%</strong></p>
             
             <div class="proposta-titulo">PROPOSTA ESPECIAL (+5%)</div>
-            <p style="font-size: 10pt; margin-bottom: 10px; text-align: center;">Considerando uma bolsa de <strong>{{proposta_pct}}%</strong>:</p>
+            <p style="font-size: 10pt; margin-bottom: 5px; text-align: center;">Considerando uma bolsa de <strong>{{proposta_pct}}%</strong>:</p>
             
             <table class="pag3 tabela-parcelas">
                 <tr>
@@ -271,7 +297,21 @@
                 </tr>
             </table>
 
-            <div class="linha-formulario" style="margin-top: 20px;">
+            <table class="tabela-novos-planos tabela-compacta">
+                <tr>
+                    <th colspan="2">{{texto_condicao_hoje}}</th>
+                </tr>
+                <tr>
+                    <td class="sub-header">1ª parcela</td>
+                    <td class="sub-header">11 Parcelas de</td>
+                </tr>
+                <tr>
+                    <td class="valor-destaque">{{entrada_especial}}</td>
+                    <td class="valor-destaque">{{val_11x_especial}}</td>
+                </tr>
+            </table>
+
+            <div class="linha-formulario" style="margin-top: 10px;">
                 <span class="label-form">Proposta:</span>
                 <div class="campo">
                     <span class="valor">&nbsp;</span>
@@ -293,7 +333,7 @@
                 </div>
             </div>
             
-            <div class="footer-fluxo">
+            <div class="footer-fluxo footer-pag3">
                 <p class="small2">
                     <span class="horario">Horário de funcionamento: 2ª a 6ª feira (7h às 19h) sábado (8h às 12h).</span><br>
                     <span class="data_limite">OBS: Essa bolsa é válida até o dia {{data_limite}}</span>

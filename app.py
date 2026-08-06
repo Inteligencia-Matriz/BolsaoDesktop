@@ -29,11 +29,11 @@ import backend as be
 
 class App(bs.Window):
     def __init__(self, title, size):
-        super().__init__(themename="litera")
+        super().__init__(themename="minty")
         
         # --- DEFINIÇÃO CENTRAL DA VERSÃO ---
         # Alterar aqui atualiza para todo o sistema (Update, Título, ID)
-        self.APP_VERSION = "2.9.2"
+        self.APP_VERSION = "3.0.0"
         
         myappid = f'MatrizEducacao.GestorBolsao.Desktop.{self.APP_VERSION}' 
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
@@ -341,7 +341,7 @@ class App(bs.Window):
             nome_bolsao = be.get_bolsao_name_for_date(hoje)
 
             pct_bolsa = be.calcula_bolsa(total_acertos, serie_modalidade, unidade_limpa)
-            precos = be.precos_2026(serie_modalidade)
+            precos = be.precos_2027(serie_modalidade)
             
             # --- CÁLCULOS PÁGINA 1: ANUIDADE E PARCELAMENTO NORMAL ---
             # Anuidade Total com o desconto da Bolsa (Normal)
@@ -508,7 +508,7 @@ class App(bs.Window):
                 serie = self.n_serie_var.get()
                 valor_minimo = be.calcula_valor_minimo(unidade, serie)
                 self.n_valor_minimo_var.set(f"Valor Mínimo Negociável: {be.format_currency(valor_minimo)}")
-                precos = be.precos_2026(serie)
+                precos = be.precos_2027(serie)
                 valor_integral = precos["parcela_mensal"]
                 resultado_str = ""
                 if self.n_modo_sim_var.get() == "Bolsa (%)":
@@ -766,7 +766,7 @@ class App(bs.Window):
     # --- ABA 4: VALORES ---
     def create_valores_tab(self):
         val_frame = ttk.Frame(self.notebook, padding=10)
-        self.notebook.add(val_frame, text='Valores 2026')
+        self.notebook.add(val_frame, text='Valores 2027')
         ttk.Label(val_frame, text="Tabela de Valores", font=("-size 14 -weight bold")).pack(pady=10)
         cols = ["Curso", "Série", "Primeira Cota", "12 parcelas de"]
         tree = ttk.Treeview(val_frame, columns=cols, show='headings', style='info.Treeview')
@@ -774,23 +774,23 @@ class App(bs.Window):
             tree.heading(col, text=col)
             tree.column(col, anchor=CENTER, width=150)
         linhas = [
-            ("EFI",  "1º Ano", 2050.31, 2050.31), ("EFI",  "2º Ano", 2050.31, 2050.31),
-            ("EFI",  "3º Ano", 2050.31, 2050.31), ("EFI",  "4º Ano", 2050.31, 2050.31),
-            ("EFI",  "5º Ano", 2050.31, 2050.31), ("EFII", "6º Ano", 2411.85, 2411.85),
-            ("EFII", "7º Ano", 2411.85, 2411.85), ("EFII", "8º Ano", 2411.85, 2411.85),
-            ("EFII", "9º Ano - Militar",     2626.62, 2626.62),
-            ("EFII", "9º Ano - Vestibular", 2626.62, 2626.62),
-            ("EM",   "1ª Série - Militar",     2820.77, 2820.77),
-            ("EM",   "1ª Série - Vestibular", 2820.77, 2820.77),
-            ("EM",   "2ª Série - Militar",     2820.77, 2820.77),
-            ("EM",   "2ª Série - Vestibular", 2820.77, 2820.77),
-            ("EM",   "3ª série - Medicina",   2831.69, 2831.69),
-            ("EM",   "3ª Série - Militar",     2831.69, 2831.69),
-            ("EM",   "3ª Série - Vestibular", 2831.69, 2831.69),
-            ("PM",   "AFA/EN/EFOMM", 1138.62, 1138.62), ("PM",   "CN/EPCAr", 681.77,  681.77),
-            ("PM",   "ESA", 549.62,  549.62), ("PM",   "EsPCEx", 1138.62, 1138.62),
-            ("PM",   "IME/ITA", 1138.62, 1138.62), ("PV",   "Medicina", 1138.62, 1138.62),
-            ("PV",   "Pré-Vestibular", 1138.62, 1138.62),
+            ("EFI",  "1º Ano", 2251.24, 2251.24), ("EFI",  "2º Ano", 2251.24, 2251.24),
+            ("EFI",  "3º Ano", 2251.24, 2251.24), ("EFI",  "4º Ano", 2251.24, 2251.24),
+            ("EFI",  "5º Ano", 2251.24, 2251.24), ("EFII", "6º Ano", 2648.21, 2648.21),
+            ("EFII", "7º Ano", 2648.21, 2648.21), ("EFII", "8º Ano", 2648.21, 2648.21),
+            ("EFII", "9º Ano - Militar",     2884.02, 2884.02),
+            ("EFII", "9º Ano - Vestibular", 2884.02, 2884.02),
+            ("EM",   "1ª Série - Militar",     3097.20, 3097.20),
+            ("EM",   "1ª Série - Vestibular", 3097.20, 3097.20),
+            ("EM",   "2ª Série - Militar",     3097.20, 3097.20),
+            ("EM",   "2ª Série - Vestibular", 3097.20, 3097.20),
+            ("EM",   "3ª série - Medicina",   3109.20, 3109.20),
+            ("EM",   "3ª Série - Militar",     3109.20, 3109.20),
+            ("EM",   "3ª Série - Vestibular", 3109.20, 3109.20),
+            ("PM",   "AFA/EN/EFOMM", 1250.20, 1250.20), ("PM",   "CN/EPCAr", 748.58,  748.58),
+            ("PM",   "ESA", 603.48,  603.48), ("PM",   "EsPCEx", 1250.20, 1250.20),
+            ("PM",   "IME/ITA", 1250.20, 1250.20), ("PV",   "Medicina", 1250.20, 1250.20),
+            ("PV",   "Pré-Vestibular", 1250.20, 1250.20),
         ]
         for linha in linhas:
             formatted_linha = (linha[0], linha[1], be.format_currency(linha[2]), be.format_currency(linha[3]))

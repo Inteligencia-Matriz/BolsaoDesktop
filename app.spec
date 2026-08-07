@@ -1,5 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
+from PyInstaller.utils.hooks import collect_data_files
 
 spec_dir = os.path.abspath(".")
 block_cipher = None
@@ -10,6 +11,7 @@ datas_list = [
     (os.path.join(spec_dir, 'images'), 'images'),
     (os.path.join(spec_dir, 'dist', 'updater.exe'), '.')
 ]
+datas_list += collect_data_files('ttkbootstrap')
 
 # CORREÇÃO: Adicionados hiddenimports para o Google Sheets funcionar
 hidden_imports_list = [
@@ -18,7 +20,8 @@ hidden_imports_list = [
     'google.oauth2',
     'google.auth.transport.requests',
     'requests',
-    'json'
+    'json',
+    'ttkbootstrap'
 ]
 
 a = Analysis(

@@ -12,7 +12,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import ttkbootstrap as bs
 from ttkbootstrap.constants import *
-from ttkbootstrap.scrolled import ScrolledFrame
+from ttkbootstrap.widgets import ScrolledFrame
 import pandas as pd
 from pathlib import Path
 import json # Módulo para lidar com o arquivo de salvamento offline (JSON)
@@ -33,7 +33,7 @@ class App(bs.Window):
         
         # --- DEFINIÇÃO CENTRAL DA VERSÃO ---
         # Alterar aqui atualiza para todo o sistema (Update, Título, ID)
-        self.APP_VERSION = "3.0.0"
+        self.APP_VERSION = "3.0.1"
         
         myappid = f'MatrizEducacao.GestorBolsao.Desktop.{self.APP_VERSION}' 
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
@@ -47,8 +47,9 @@ class App(bs.Window):
         if self.check_for_updates():
             return 
             
-        self.title(f"{title} v{self.APP_VERSION}")
+        self.title(f"Gestor do Bolsão {self.APP_VERSION}")
         
+        # Estado dos Filtros
         self.geometry(f'{size[0]}x{size[1]}')
         self.minsize(size[0], size[1])
         

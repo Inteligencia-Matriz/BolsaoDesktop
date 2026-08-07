@@ -33,7 +33,7 @@ class App(bs.Window):
         
         # --- DEFINIÇÃO CENTRAL DA VERSÃO ---
         # Alterar aqui atualiza para todo o sistema (Update, Título, ID)
-        self.APP_VERSION = "3.0.2"
+        self.APP_VERSION = "3.0.3"
         
         myappid = f'MatrizEducacao.GestorBolsao.Desktop.{self.APP_VERSION}' 
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
@@ -348,13 +348,14 @@ class App(bs.Window):
             # Anuidade Total com o desconto da Bolsa (Normal)
             anuidade_com_bolsa = precos["anuidade"] * (1 - pct_bolsa)
             
-            # Parcelamento padrão (1 + 11 = 12x)
-            val_12x_normal = anuidade_com_bolsa / 12
+            # Parcelamento padrão (Matrícula R$ 300, Saldo em 12x)
+            entrada_normal = 300.00
+            saldo_restante_normal = anuidade_com_bolsa - entrada_normal
+            if saldo_restante_normal < 0: saldo_restante_normal = 0
+            val_12x_normal = saldo_restante_normal / 12
 
             # --- CÁLCULOS PÁGINA 1: CONDIÇÃO ESPECIAL (HOJE) ---
             # Regra: Desconto da bolsa + 5% extra
-            # Valor fixo de entrada: R$ 400,00
-            # Saldo restante em 11x
             
             pct_especial_hoje = pct_bolsa + 0.05
             if pct_especial_hoje > 1.0: 
@@ -364,13 +365,14 @@ class App(bs.Window):
             anuidade_especial_total = precos["anuidade"] * (1 - pct_especial_hoje)
             
             # Valor fixo da 1ª parcela
-            entrada_especial = 400.00
+            entrada_especial = 300.00
             
             # Abate a entrada para achar o saldo
             saldo_restante_especial = anuidade_especial_total - entrada_especial
+            if saldo_restante_especial < 0: saldo_restante_especial = 0
             
-            # O saldo é dividido em 11 parcelas
-            val_11x_especial = saldo_restante_especial / 11
+            # O saldo é dividido em 12 parcelas
+            val_12x_especial = saldo_restante_especial / 12
 
             # --- CRIAÇÃO DO TEXTO DINÂMICO PARA O CABEÇALHO ---
             base_int = int(round(pct_bolsa * 100))
@@ -378,14 +380,16 @@ class App(bs.Window):
             # Formato: "Condições de hoje 66% (61% + 5%)"
             texto_condicao = f"Condições de hoje {total_int}% ({base_int}% + 5%)"
 
-            # --- CÁLCULOS PÁGINA 3: PROPOSTA ESPECIAL (GENÉRICA 13x e 12x) ---
+            # --- CÁLCULOS PÁGINA 3: PROPOSTA ESPECIAL (GENÉRICA) ---
             # Mantem a lógica de +5% para exibir os planos tradicionais na página 3
             proposta_pct = pct_bolsa + 0.05
             if proposta_pct > 1.0: proposta_pct = 1.0
             anuidade_proposta = precos["anuidade"] * (1 - proposta_pct)
             
-            prop13_val = anuidade_proposta / 13
-            prop12_val = anuidade_proposta / 12
+            entrada_proposta = 300.00
+            saldo_proposta = anuidade_proposta - entrada_proposta
+            if saldo_proposta < 0: saldo_proposta = 0
+            prop12_val = saldo_proposta / 12
             
             aluno_safe = re.sub(r'[\\/*?:"<>|]', "", aluno.strip())
             bolsao_safe = re.sub(r'[\\/*?:"<>|]', "", nome_bolsao.strip()).replace(" ", "_")
@@ -407,17 +411,18 @@ class App(bs.Window):
                 
                 # Valores Página 1 - Tabela Superior (Normal)
                 "anuidade_total_bolsa": be.format_currency(anuidade_com_bolsa),
+                "entrada_normal": be.format_currency(entrada_normal),
                 "val_12x_normal": be.format_currency(val_12x_normal),
                 
                 # Valores Página 1 - Tabela Inferior (Condição de Hoje)
                 # Passamos o texto dinâmico gerado aqui
                 "texto_condicao_hoje": texto_condicao,
                 "entrada_especial": be.format_currency(entrada_especial),
-                "val_11x_especial": be.format_currency(val_11x_especial),
+                "val_12x_especial": be.format_currency(val_12x_especial),
                 
                 # Valores Página 3 (Proposta Especial +5% genérica)
                 "proposta_pct": f"{proposta_pct * 100:.0f}",
-                "prop13_val": be.format_currency(prop13_val),
+                "entrada_proposta": be.format_currency(entrada_proposta),
                 "prop12_val": be.format_currency(prop12_val),
                 
                 "unidades_html": "".join(f"<span class='unidade-item'>{u}</span>" for u in be.UNIDADES_LIMPAS),

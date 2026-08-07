@@ -102,8 +102,8 @@ p.center2 {
   grid-template-columns: auto 1fr;
   grid-column-gap: 8px;
   align-items: baseline;
-  margin: 10pt auto;
-  max-width: 140mm;
+  margin: 5pt auto;
+  max-width: 160mm;
 }
 
 .label-form {

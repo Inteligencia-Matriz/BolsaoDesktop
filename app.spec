@@ -27,7 +27,7 @@ hidden_imports_list = [
 a = Analysis(
     [os.path.join(spec_dir, 'app.py')],
     pathex=[spec_dir],
-    binaries=[],
+    binaries=[('C:\\Program Files\\GTK3-Runtime Win64\\bin\\*.dll', '.')],
     datas=datas_list,
     hiddenimports=hidden_imports_list,  # <-- AQUI ESTÁ A CORREÇÃO
     hookspath=[],

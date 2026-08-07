@@ -33,7 +33,7 @@ class App(bs.Window):
         
         # --- DEFINIÇÃO CENTRAL DA VERSÃO ---
         # Alterar aqui atualiza para todo o sistema (Update, Título, ID)
-        self.APP_VERSION = "3.0.3"
+        self.APP_VERSION = "3.0.4"
         
         myappid = f'MatrizEducacao.GestorBolsao.Desktop.{self.APP_VERSION}' 
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
@@ -400,7 +400,7 @@ class App(bs.Window):
             
             # Contexto enviado para o HTML (carta.html)
             ctx = {
-                "ano": hoje.year, 
+                "ano": "2027", 
                 "unidade": f"Colégio Matriz – {unidade_limpa}",
                 "aluno": aluno.strip().title(), 
                 "bolsa_pct": f"{pct_bolsa * 100:.0f}",

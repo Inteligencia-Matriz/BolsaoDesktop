@@ -652,23 +652,23 @@ def gerar_html_material_didatico(unidade: str) -> str:
     }
 
     precos_didatico_padrao = {
-        "1ª ao 5ª ano": ("R$ 2.802,97", "12x de R$ 233,58"),
-        "6ª ao 8ª ano": ("R$ 3.036,82", "12x de R$ 253,07"),
+        "1ª ao 5ª ano": ("R$ 3.702,96", "12x de R$ 308,58"),
+        "6ª ao 8ª ano": ("R$ 4.236,80", "12x de R$ 353,07"),
         "9ª ano Vestibular": ("R$ 3.154,21", "12x de R$ 262,85"),
         "1ª e 2ª série Vestibular": ("R$ 3.842,64", "12x de R$ 320,22"),
         "3ª série": ("R$ 4.512,73", "12x de R$ 376,57"),
     }
 
     precos_sao_joao = {
-        "1ª ao 5ª ano": ("R$ 2.123,05", "12x de R$ 176,92"),
-        "6ª ao 8ª ano": ("R$ 2.218,97", "12x de R$ 184,91"),
+        "1ª ao 5ª ano": ("R$ 3.702,96", "12x de R$ 308,58"),
+        "6ª ao 8ª ano": ("R$ 4.236,80", "12x de R$ 353,07"),
         "9ª ano Vestibular": ("R$ 2.217,78", "12x de R$ 184,82"),
         "1ª e 2ª série Vestibular": ("R$ 2.826,47", "12x de R$ 235,54"),
         "3ª série": ("R$ 3.329,37", "12x de R$ 277,44"),
     }
     
     precos_retiro = {
-        "1ª ao 5ª ano": ("R$ 2.802,97", "12x de R$ 233,58"),
+        "1ª ao 5ª ano": ("R$ 3.702,96", "12x de R$ 308,58"),
     }
     
     dados_didatico = {}

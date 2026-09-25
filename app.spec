@@ -7,21 +7,21 @@ block_cipher = None
 
 datas_list = [
     (os.path.join(spec_dir, 'carta.html'), '.'),
+    (os.path.join(spec_dir, 'presenca.html'), '.'),
     (os.path.join(spec_dir, 'style.css'), '.'),
     (os.path.join(spec_dir, 'images'), 'images'),
     (os.path.join(spec_dir, 'dist', 'updater.exe'), '.')
 ]
-datas_list += collect_data_files('ttkbootstrap')
+datas_list += collect_data_files('customtkinter')
 
-# CORREÇÃO: Adicionados hiddenimports para o Google Sheets funcionar
 hidden_imports_list = [
-    'gspread',
-    'google.auth',
-    'google.oauth2',
-    'google.auth.transport.requests',
-    'requests',
-    'json',
-    'ttkbootstrap'
+    'customtkinter',
+    'fuzzywuzzy',
+    'pandas',
+    'weasyprint',
+    'pytz',
+    'csv',
+    'json'
 ]
 
 a = Analysis(

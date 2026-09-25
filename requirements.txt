@@ -1,6 +1,7 @@
-gspread
 pandas
 weasyprint
-ttkbootstrap
+customtkinter
+fuzzywuzzy
+python-Levenshtein
 pyinstaller
 pytz
